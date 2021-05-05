@@ -1,0 +1,26 @@
+cabal-version:       >= 1.10
+
+name:                happy-rad
+version:             1.21.0
+synopsis:            Happy plus an optional recursive ascent-descent backend.
+
+author:              David Knothe
+maintainer:          dknothe314@me.com
+
+build-type:          Simple
+
+executable happy-rad
+  main-is:             Main.hs
+  build-depends:       base >=4.8.2.0,
+                       frontend,
+                       middleend,
+                       backend,
+                       rad-backend,
+                       transformers >= 0.5,
+                       mtl >= 2.2.1
+  hs-source-dirs:      src
+  default-language:    Haskell98
+  default-extensions:  CPP, MagicHash, FlexibleContexts
+  other-modules:
+      OptionParsing,
+      Paths_happy_rad

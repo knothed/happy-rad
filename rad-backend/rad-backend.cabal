@@ -1,0 +1,28 @@
+cabal-version:       >= 1.10
+
+name:                rad-backend
+version:             1.21.0
+synopsis:            A backend for producing recursive ascent-descent (RAD) code.
+
+author:              David Knothe
+maintainer:          dknothe314@me.com
+
+build-type:          Simple
+
+library
+  exposed-modules:     RADBackendCLI
+  build-depends:       base < 5,
+                       array,
+                       frontend,
+                       middleend,
+                       dom-lt >= 0.2.2,
+                       containers >= 0.4.2,
+                       text
+  hs-source-dirs:      src
+  default-language:    Haskell98
+  default-extensions:  CPP, MagicHash, FlexibleContexts
+  other-modules:       Follow,
+                       NameSet,
+                       RADTools,
+                       RADCodeGen,
+                       RADStateGen

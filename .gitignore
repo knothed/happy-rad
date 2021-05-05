@@ -1,0 +1,8 @@
+dist
+dist-newstyle
+.ghc.environment.*
+cabal-dev
+.cabal-sandbox
+cabal.sandbox.config
+.*.swp
+.*.swo
