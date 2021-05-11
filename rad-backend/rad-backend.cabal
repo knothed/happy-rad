@@ -10,11 +10,11 @@ maintainer:          dknothe314@me.com
 build-type:          Simple
 
 library
-  exposed-modules:     RADBackendCLI
+  exposed-modules:     RADBackend, RADBackendCLI
   build-depends:       base < 5,
                        array,
-                       frontend,
-                       middleend,
+                       happy-core,
+                       happy-middleend,
                        dom-lt >= 0.2.2,
                        containers >= 0.4.2,
                        text
@@ -22,7 +22,7 @@ library
   default-language:    Haskell98
   default-extensions:  CPP, MagicHash, FlexibleContexts
   other-modules:       Follow,
-                       NameSet,
                        RADTools,
                        RADCodeGen,
-                       RADStateGen
+                       RADStateGen,
+                       Paths_rad_backend

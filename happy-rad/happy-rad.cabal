@@ -12,9 +12,10 @@ build-type:          Simple
 executable happy-rad
   main-is:             Main.hs
   build-depends:       base >=4.8.2.0,
-                       frontend,
-                       middleend,
-                       backend,
+                       happy-core,
+                       happy-frontend,
+                       happy-middleend,
+                       happy-backend,
                        rad-backend,
                        transformers >= 0.5,
                        mtl >= 2.2.1
@@ -22,5 +23,4 @@ executable happy-rad
   default-language:    Haskell98
   default-extensions:  CPP, MagicHash, FlexibleContexts
   other-modules:
-      OptionParsing,
       Paths_happy_rad

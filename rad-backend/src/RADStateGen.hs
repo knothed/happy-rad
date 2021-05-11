@@ -7,8 +7,9 @@ module RADStateGen (generateLALRStates, generateRADStates, createXGrammar, artCo
   import Data.Graph
   import Data.Set (Set, toList, fromList, elemAt)
   import qualified Data.IntSet
-  import LALR
-  import RADTools (CompletedLr0State, Lr1State, XGrammar(..), complete, showItem, showProd, lhs, core, completion, prod, hasTokenAfterDot, tokenAfterDot, rhsLength', isInDirectCompletion, dotIsAtRightEnd, plus, hdiv, radCompletion, itemsStartingWith, plusRad, completeWithFunction, directCompletion, rhsAfterDot, showRecognitionPoint)
+  import Middleend
+  import Tables
+  import RADTools (CompletedLr0State, XGrammar(..), complete, showItem, showProd, lhs, core, completion, prod, hasTokenAfterDot, tokenAfterDot, rhsLength', isInDirectCompletion, dotIsAtRightEnd, plus, hdiv, radCompletion, itemsStartingWith, plusRad, completeWithFunction, directCompletion, rhsAfterDot, showRecognitionPoint)
   import Control.Monad
   import Data.List
   import Data.Maybe

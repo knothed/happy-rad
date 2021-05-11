@@ -1,6 +1,7 @@
 module RADCodeGen where
   import Grammar
-  import LALR
+  import Middleend
+  import Tables
   import GenUtils (mapDollarDollar)
   import RADTools (XGrammar(..), showItem, showProd, lhs, showRecognitionPoint, recognitionPoints, rhsAfterDot)
   import RADStateGen

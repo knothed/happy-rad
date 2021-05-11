@@ -4,3 +4,4 @@ packages:
  packages/frontend
  packages/middleend
  packages/backend
+ packages/core
