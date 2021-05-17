@@ -5,8 +5,13 @@ import Data.List
 
 main = do
   dir <- getDataDir
-  let tests' = if isBootstrapped then defaultTestFiles else defaultTestFiles ++ bootstrapTestFiles
-  let tests = delete "monad001.y" tests' -- todo: implement monad-only-parser (without lexer)
-  let arguments = ["--rad"] -- ++ defaultArguments
-  let setup = TestSetup { happyExec = "happy-rad", defaultTests = tests, customTests = [], customDataDir = dir, allArguments = arguments }
+  let tests = if isBootstrapped then defaultTestFiles ++ bootstrapTestFiles else defaultTestFiles
+  let setup = TestSetup {
+    happyExec = "happy-rad",
+    defaultTests = tests,
+    customTests = [],
+    customDataDir = dir,
+    allArguments = ["--rad"],
+    stopOnFailure = False
+  }
   test setup
