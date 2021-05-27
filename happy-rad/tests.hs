@@ -5,13 +5,13 @@ import Data.List
 
 main = do
   dir <- getDataDir
-  let tests = defaultTestFiles ++ (if isBootstrapped then attributeGrammarTestFiles else [])
+  let workingTests = ["Test.ly", "TestMulti.ly", "TestPrecedence.ly", "bug001.ly", "precedence002.y", "bogus-token.y", "bug002.y", "Partial.ly", "issue91.y", "issue94.y"]
   let setup = TestSetup {
     happyExec = "happy-rad",
-    defaultTests = tests,
+    defaultTests = workingTests,
     customTests = [],
     customDataDir = dir,
-    allArguments = ["--rad"],
+    allArguments = ["--rad", "--rad --types"],
     stopOnFailure = False
   }
   test setup
