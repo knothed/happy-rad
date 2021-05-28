@@ -9,6 +9,9 @@ maintainer:          dknothe314@me.com
 
 build-type:          Simple
 
+data-dir:   tests
+data-files: EpsilonAnnounce.y
+
 executable happy-rad
   main-is:             Main.hs
   build-depends:       base >=4.8.2.0,
