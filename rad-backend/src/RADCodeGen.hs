@@ -460,10 +460,10 @@ module RADCodeGen where
         
     code = case (rulesTupleBased opts, ptype opts) of
       (True, Normal) -> tupleBasedCodeNormal
-      (True, Monad) -> error "TODO"
+      (True, Monad) -> error "TODO: %monad without %lexer not yet supported"
       (True, MonadLexer) -> tupleBasedCodeLexer
       (False, Normal) -> continuationBasedCodeNormal
-      (False, Monad) -> error "TODO"
+      (False, Monad) -> error "TODO: %monad without %lexer not yet supported"
       (False, MonadLexer) -> continuationBasedCodeLexer
 
     -- There are 3 types how we can generate the code:
