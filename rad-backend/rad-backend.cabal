@@ -13,8 +13,8 @@ library
   exposed-modules:     RADBackend, RADBackendCLI
   build-depends:       base < 5,
                        array,
-                       happy-core,
-                       happy-middleend,
+                       happy-core == 1.21.0,
+                       happy-middleend == 1.21.0,
                        dom-lt >= 0.2.2,
                        containers >= 0.4.2,
                        text

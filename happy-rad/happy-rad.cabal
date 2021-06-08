@@ -15,11 +15,11 @@ data-files: EpsilonAnnounce.y
 executable happy-rad
   main-is:             Main.hs
   build-depends:       base >=4.8.2.0,
-                       happy-core,
-                       happy-frontend,
-                       happy-middleend,
-                       happy-backend,
-                       rad-backend,
+                       happy-core == 1.21.0,
+                       happy-frontend == 1.21.0,
+                       happy-middleend == 1.21.0,
+                       happy-backend == 1.21.0,
+                       rad-backend == 1.21.0,
                        transformers >= 0.5.6.2,
                        mtl >= 2.2.2
   hs-source-dirs:      src
