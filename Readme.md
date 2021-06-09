@@ -1,6 +1,6 @@
 # happy-rad
 
-This repository exposes two cabal packages which extend `happy` by a recursive ascent-descent backend:
+This repository exposes two cabal packages which extend [modular `happy`](https://github.com/piknotech/happy/tree/modularization) by a recursive ascent-descent backend:
 
 - `rad-backend` contains the rad-backend implementation;
 - `happy-rad` is the executable where the baseline happy packages and `rad-backend` are put together.
