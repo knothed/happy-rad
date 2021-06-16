@@ -1,20 +1,21 @@
-module RADStateGen (generateLALRStates, generateRADStates, createXGrammar, artCore, hdiv, plus, RADType(..), RADState(..), LALRState(..), RawRADState(..), LALRDefaultAction(..), RADDefaultAction(..)) where
-  import Grammar
-  import Data.Graph.Dom
-  import First
-  import Follow
-  import NameSet (NameSet)
-  import Data.Graph
-  import Data.Set (Set, toList, fromList, elemAt)
-  import qualified Data.IntSet
-  import Middleend
-  import Tables
-  import RADTools (CompletedLr0State, XGrammar(..), complete, showItem, showProd, lhs, core, completion, prod, hasTokenAfterDot, tokenAfterDot, rhsLength', isInDirectCompletion, dotIsAtRightEnd, plus, hdiv, radCompletion, itemsStartingWith, plusRad, completeWithFunction, directCompletion, rhsAfterDot, showRecognitionPoint)
+module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, createXGrammar, artCore, hdiv, plus, RADType(..), RADState(..), LALRState(..), RawRADState(..), LALRDefaultAction(..), RADDefaultAction(..)) where
+  import Happy.Core.Grammar
+  import Happy.Core.Tables
+  import Happy.Core.NameSet (NameSet)
+  import Happy.Middleend
+  import Happy.Middleend.First
+  import Happy.Backend.RAD.Follow
+  import Happy.Backend.RAD.Tools (CompletedLr0State, XGrammar(..), complete, showItem, showProd, lhs, core, completion, prod, hasTokenAfterDot, tokenAfterDot, rhsLength', isInDirectCompletion, dotIsAtRightEnd, plus, hdiv, radCompletion, itemsStartingWith, plusRad, completeWithFunction, directCompletion, rhsAfterDot, showRecognitionPoint)
+  import qualified Happy.Backend.RAD.Tools as RADTools
   import Control.Monad
   import Data.List
   import Data.Maybe
   import Data.Ord
   import Data.Function (on)
+  import Data.Graph
+  import Data.Graph.Dom
+  import Data.Set (Set, toList, fromList, elemAt)
+  import qualified Data.IntSet
   import GHC.Arr ((!), assocs, listArray, Array(..))
   
   

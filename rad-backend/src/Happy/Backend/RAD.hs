@@ -1,10 +1,10 @@
-module RADBackend(RADBackendArgs(..), TypeAnnotations(..), runRADBackend) where
+module Happy.Backend.RAD(RADBackendArgs(..), TypeAnnotations(..), runRADBackend) where
 
-import Middleend
-import Grammar
-import Tables
-import RADCodeGen
-import RADStateGen
+import Happy.Core.Grammar
+import Happy.Core.Tables
+import Happy.Middleend
+import Happy.Backend.RAD.CodeGen
+import Happy.Backend.RAD.StateGen
 import Paths_rad_backend
 import Data.Maybe
 
@@ -22,7 +22,7 @@ runRADBackend :: RADBackendArgs -> Grammar -> ActionTable -> GotoTable -> [Lr1St
 runRADBackend opts g action goto items unused_rules =
     let (isMonad, _, parserType, _, _) = monad g
     
-        ptype = case (Grammar.lexer g, isMonad) of
+        ptype = case (lexer g, isMonad) of
           (Nothing, False) -> Normal
           (Nothing, True) -> Monad
           (Just _, False) -> error "%lexer without %monad not supported in RAD"

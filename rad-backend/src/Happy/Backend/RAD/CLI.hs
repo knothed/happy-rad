@@ -1,6 +1,6 @@
-module RADBackendCLI(Flag(..), options, hasRADFlag, parseFlags) where
+module Happy.Backend.RAD.CLI(Flag(..), options, hasRADFlag, parseFlags) where
 
-import RADBackend
+import Happy.Backend.RAD
 import System.Console.GetOpt
 
 -------- CLI flags and options --------

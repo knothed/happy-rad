@@ -1,18 +1,18 @@
 module Main where
 
-import qualified FrontendCLI
-import qualified MiddleendCLI
-import qualified BackendCLI
-import qualified RADBackendCLI as RADCLI
-import Backend
-import RADBackend
+import qualified Happy.Frontend.CLI as FrontendCLI
+import qualified Happy.Middleend.CLI as MiddleendCLI
+import qualified Happy.Backend.CLI as BackendCLI
+import qualified Happy.Backend.RAD.CLI as RADCLI
+import Happy.Backend
+import Happy.Backend.RAD
+import Happy.Core.OptionParsing
 import System.IO
 import System.Exit
 import System.Environment
-import OptionParsing
+import System.Console.GetOpt
 import Control.Monad.Trans.Except
 import Control.Monad.Except
-import System.Console.GetOpt
 import Paths_happy_rad
 
 -- Flag conglomerate
@@ -47,7 +47,7 @@ main = do
 
   backend <- BackendCLI.parseFlags (getBackend flags) basename
   -- Pass outfile from BackendArgs to RADBackendArgs. TODO: find better way to handle CLI arguments which are required by multiple packages
-  case RADCLI.parseFlags (getRad flags) (Backend.outFile backend) of
+  case RADCLI.parseFlags (getRad flags) (Happy.Backend.outFile backend) of
     Just rad -> runRADBackend rad grammar action goto items unused_rules
     Nothing -> runBackend backend grammar action goto
 

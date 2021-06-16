@@ -1,14 +1,14 @@
-module RADTools where
-  import Grammar
-  import GHC.Arr
-  import Middleend
-  import Tables
+module Happy.Backend.RAD.Tools where
+  import Happy.Core.Grammar
+  import Happy.Core.Tables
+  import Happy.Middleend
   import Data.Maybe
   import Data.List (elemIndex)
   import Data.IntSet ()
   import Data.IntMap ()
   import qualified Data.Set as Set
   import Data.Set (Set, toList, fromList, union, (\\))
+  import GHC.Arr
     
   ----- COMPLETE LR0 STATES -----
   

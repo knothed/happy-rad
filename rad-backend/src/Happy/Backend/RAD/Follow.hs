@@ -1,12 +1,12 @@
-module Follow where
-  import Grammar
-  import RADTools
+module Happy.Backend.RAD.Follow where
+  import Happy.Core.Grammar
+  import Happy.Core.NameSet (NameSet, empty, fromList, union, unions, delete, member, singleton)
+  import Happy.Backend.RAD.Tools
   import Control.Monad
   import Control.Monad.ST
   import Data.Array.ST
-  import GHC.Arr
   import Data.List (findIndices, tails)
-  import NameSet (NameSet, empty, fromList, union, unions, delete, member, singleton)
+  import GHC.Arr
 
   -- Calculate the follow sets for all nonterminals in the grammar.
   followArray :: Grammar -> ([Name] -> NameSet) -> Array Name NameSet

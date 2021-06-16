@@ -1,16 +1,16 @@
-module RADCodeGen where
-  import Grammar
-  import Middleend
-  import Tables
-  import GenUtils (mapDollarDollar)
-  import RADTools (XGrammar(..), showItem, showProd, lhs, showRecognitionPoint, recognitionPoints, rhsAfterDot)
-  import RADStateGen
+module Happy.Backend.RAD.CodeGen where
+  import Happy.Backend.RAD.Tools (XGrammar(..), showItem, showProd, lhs, showRecognitionPoint, recognitionPoints, rhsAfterDot)
+  import qualified Happy.Backend.RAD.Tools as RADTools
+  import Happy.Core.Grammar
+  import Happy.Core.Tables
+  import Happy.Core.GenUtils (mapDollarDollar)
+  import Happy.Middleend
+  import Happy.Backend.RAD.StateGen
   import Control.Monad
   import Data.List
   import Data.Maybe
   import Data.Text (pack, unpack, replace)
   import GHC.Arr ((!), indices)
-  
 
   data ParserType = Normal | Monad | MonadLexer deriving (Eq, Show)
   
