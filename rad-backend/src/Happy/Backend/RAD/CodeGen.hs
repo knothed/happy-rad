@@ -142,11 +142,11 @@ module Happy.Backend.RAD.CodeGen where
         line2 = name ++ " cont (Just tok) = cont tok Nothing"
 
       -- happyErrorWrapper :: Token -> Parser a
-      -- happyErrorWrapper t _ = happyError t
+      -- happyErrorWrapper _ _ = happyError
       wrapError = newline [typedecl, definition] where
         name = "happyErrorWrapper"
         typedecl = name ++ " :: " ++ tokenT ++ " -> " ++ parser "a"
-        definition = name ++ " = const . " ++ happyError
+        definition = name ++ " _ _ = " ++ happyError
       
       p a = p' ++ " " ++ a
       parser a = wrapperType opts ++ " " ++ a
