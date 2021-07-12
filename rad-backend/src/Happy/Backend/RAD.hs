@@ -13,7 +13,8 @@ import Data.Maybe
 data RADBackendArgs = RADBackendArgs {
     outFile :: String,
     typeAnnotations :: TypeAnnotations,
-    showComments :: Bool
+    showComments :: Bool,
+    parserWrapperType :: Maybe String
 }
 
 data TypeAnnotations = Never | Always | RankN deriving Eq -- Rank2 implies Always
@@ -30,10 +31,8 @@ runRADBackend opts g action goto items unused_rules =
          
         options = GenOptions {
           ptype = ptype,
-          wrapperType = if parserType == "Parser" then "HappyP" else "Parser",
+          wrapperType = fromMaybe (if parserType == "Parser" then "HappyP" else "Parser") (parserWrapperType opts),
           errorTokenType = "ErrorToken",
-          header = fromMaybe "" (hd g),
-          footer = fromMaybe "" (tl g),
           showTypes = (typeAnnotations opts) /= Never,
           comments = showComments opts,
           rank2Types = (typeAnnotations opts) == RankN,

@@ -28,10 +28,7 @@ module Happy.Backend.RAD.CodeGen where
     
     rulesTupleBased :: Bool, -- actually, this doesn't produce good nor fast code. maybe drop this?
 
-    optimize :: Bool, -- inline all rule functions and eta-expand all applications of local "g" functions
-
-    header :: String,
-    footer :: String
+    optimize :: Bool -- inline all rule functions and eta-expand all applications of local "g" functions
   } deriving Show
   
   mlex opts = ptype opts == MonadLexer
@@ -57,7 +54,7 @@ module Happy.Backend.RAD.CodeGen where
           extension str = "{-# LANGUAGE " ++ str ++ " #-}"
         
       g = (RADTools.g x)
-      header' = header opts
+      header' = fromMaybe "" (hd g)
       entryPoints' = newlines 2 $ map (entryPoint opts g states) (starts g)
       definitions' = definitions opts g
       
@@ -69,7 +66,7 @@ module Happy.Backend.RAD.CodeGen where
       
       actions' = newlines 2 $ map (genAction opts g) [0..prods]
       prods = length (productions g) - 1
-      footer' = footer opts
+      footer' = fromMaybe "" (tl g)
     
 
   -------------------- ENTRYPOINT --------------------
