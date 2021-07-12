@@ -48,7 +48,9 @@ module Happy.Backend.RAD.CodeGen where
   -- Generate the full code
   genCode :: GenOptions -> XGrammar -> [RADState] -> ActionTable -> GotoTable -> IO String
   genCode opts x states action goto = do
-    return $ newlines 3 [languageFeatures, header', entryPoints', definitions', rules', parseNTs', parseTerminals', states', actions', footer'] where
+    return $ newlines 3 [nowarn, languageFeatures, header', entryPoints', definitions', rules', parseNTs', parseTerminals', states', actions', footer'] where
+      nowarn = "{-# OPTIONS_GHC -w #-}"
+      
       languageFeatures
         | rank2Types opts = newline $ map extension ["RankNTypes", "ScopedTypeVariables"]
         | otherwise = "" where
