@@ -6,6 +6,7 @@ import qualified Happy.Backend.CLI as BackendCLI
 import qualified Happy.Backend.RAD.CLI as RADCLI
 import Happy.Backend
 import Happy.Backend.RAD
+import Happy.Backend.RAD.CLI
 import Happy.Core.OptionParsing
 import System.IO
 import System.Exit
@@ -22,7 +23,7 @@ as :: Functor f => [f a] -> (a -> b) -> [f b]
 a `as` b = map (fmap b) a
 
 allOptions :: [OptDescr HappyFlag]
-allOptions = FrontendCLI.options `as` Frontend  ++ MiddleendCLI.options `as` Middleend ++ BackendCLI.options `as` Backend ++ RADCLI.options `as` RAD
+allOptions = FrontendCLI.options `as` Frontend  ++ MiddleendCLI.options `as` Middleend ++ BackendCLI.options `as` Backend ++ RADCLI.optionsWithoutOutfile `as` RAD
 
 getFrontend :: [HappyFlag] -> [FrontendCLI.Flag]
 getMiddleend :: [HappyFlag] -> [MiddleendCLI.Flag]
@@ -46,8 +47,9 @@ main = do
   (action, goto, items, unused_rules) <- MiddleendCLI.parseAndRun (getMiddleend flags) filename basename grammar
 
   backend <- BackendCLI.parseFlags (getBackend flags) basename
-  -- Pass outfile from BackendArgs to RADBackendArgs. TODO: find better way to handle CLI arguments which are required by multiple packages
-  case RADCLI.parseFlags (getRad flags) (Happy.Backend.outFile backend) of
+  let radFlags = getRad flags ++ [OptRAD_Outfile $ Happy.Backend.outFile backend] -- Pass outfile from backend to rad-backend
+
+  case RADCLI.parseFlags radFlags basename of
     Just rad -> runRADBackend rad grammar action goto items unused_rules
     Nothing -> runBackend backend grammar action goto
 
