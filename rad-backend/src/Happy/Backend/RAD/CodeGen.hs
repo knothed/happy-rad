@@ -43,8 +43,8 @@ module Happy.Backend.RAD.CodeGen where
   
   -------------------- GENCODE --------------------
   -- Generate the full code
-  genCode :: GenOptions -> XGrammar -> [RADState] -> ActionTable -> GotoTable -> IO String
-  genCode opts x states action goto = do
+  genCode :: GenOptions -> XGrammar -> [RADState] -> ActionTable -> GotoTable -> [Int] -> IO String
+  genCode opts x states action goto unused_rules = do
     return $ newlines 3 [nowarn, languageFeatures, header', entryPoints', definitions', rules', parseNTs', parseTerminals', states', actions', footer'] where
       nowarn = "{-# OPTIONS_GHC -w #-}"
       
@@ -58,7 +58,7 @@ module Happy.Backend.RAD.CodeGen where
       entryPoints' = newlines 2 $ map (entryPoint opts g states) (starts g)
       definitions' = definitions opts g
       
-      rules' = newlines 2 $ map (genRule opts x) [0..prods]
+      rules' = newlines 2 $ map (genRule opts x) $ filter (not . flip elem unused_rules) [0..prods]
       parseNTs' = newlines 2 $ catMaybes $ map (genParseNT opts g states) (non_terminals g)
       parseTerminals' = newlines 2 $ map (genParseTerminal opts g) (delete errorTok (terminals g))
       

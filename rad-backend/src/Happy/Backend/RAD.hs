@@ -45,5 +45,5 @@ runRADBackend opts g action goto items unused_rules =
 
         x <- createXGrammar g lalrStates
         radStates <- generateRADStates x lalrStates unused_rules
-        genCode options x radStates action goto >>=
+        genCode options x radStates action goto unused_rules >>=
           if (outFile opts) == "-" then putStr else writeFile (outFile opts)
