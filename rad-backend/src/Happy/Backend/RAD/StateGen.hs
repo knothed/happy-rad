@@ -16,7 +16,6 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   import Data.Graph.Dom
   import Data.Set (Set, toList, fromList, elemAt)
   import qualified Data.IntSet
-  import System.IO.Unsafe
   import GHC.Arr ((!), assocs, listArray, Array(..))
   
   
@@ -411,9 +410,10 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       recursiveAnnouncedRule token nulls
         | elem token nulls = Nothing
         | otherwise = case directRule of
-        Just rule -> elemIndex (prod g rule) (productions g)
+        Just rule -> findIndex (eq $ prod g rule) (productions g)
         Nothing -> extendedRule
         where
+        eq (Production a b c _) (Production d e f _) = a == d && b == e && c == f
         
         directRule = find matchingReadyRule (completion' raw)
         matchingReadyRule item@(Lr0 rule dot) = (recognitionPoints x) !! rule == dot && hasTokenAfterDot g item && tokenAfterDot g item == token

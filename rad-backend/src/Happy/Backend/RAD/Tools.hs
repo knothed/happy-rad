@@ -3,7 +3,7 @@ module Happy.Backend.RAD.Tools where
   import Happy.Core.Tables
   import Happy.Middleend
   import Data.Maybe
-  import Data.List (elemIndex)
+  import Data.List (findIndex)
   import Data.IntSet ()
   import Data.IntMap ()
   import qualified Data.Set as Set
@@ -144,8 +144,9 @@ module Happy.Backend.RAD.Tools where
   itemsStartingWith :: Grammar -> Name -> [Lr0Item]
   itemsStartingWith g token = map toItem $ filter (startsWith token) $ (productions g) where
     toItem prod = Lr0 rule 0 where
-      rule = fromJust $ elemIndex prod (productions g)
+      rule = fromJust $ findIndex (eq prod) (productions g)
     startsWith token (Production token' _ _ _) = token == token'
+    eq (Production a b c _) (Production d e f _) = a == d && b == e && c == f
     
   -- Determine whether the item starts with the token
   itemStartsWith :: Grammar -> Lr0Item -> Name -> Bool
