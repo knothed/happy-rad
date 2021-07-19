@@ -162,9 +162,9 @@ module Happy.Backend.RAD.CodeGen where
   genState opts x@XGrammar { RADTools.g = g } state
     | isTrivialAccept = newline [comment, trivialTypedecl, trivialAcceptHeader]
     | isTrivialAnnounce = newline [comment, trivialTypedecl, trivialAnnounceHeader]
-    | otherwise = newline [comment, typedecl, header, shifts'', announces'', accepts'', defaultAction'', gotos''] where
+    | otherwise = newline [comment, typedecl, header, shifts'', announces'', fails'', accepts'', defaultAction'', gotos''] where
     
-    hasNoActions = (null $ shifts' state) && (null $ accepts' state) && (null $ announces' state) && length (artCore state) == 1
+    hasNoActions = (null $ shifts' state) && (null $ accepts' state) && (null $ announces' state) && (null $ fails' state) && length (artCore state) == 1
     hasNoGotos = (null $ gotos' state)
     isTrivialAccept = hasNoActions && hasNoGotos && (defaultAction' state == Accept')
     isTrivialAnnounce = isAlwaysAnnounce && hasNoGotos
@@ -198,6 +198,7 @@ module Happy.Backend.RAD.CodeGen where
       
     shifts'' = newlineMap "  " shift (shifts' state)
     announces'' = newlineMap "  " announce (announces' state)
+    fails'' = newlineMap "  " fail (fails' state)
     accepts'' = newlineMap "  " accept (accepts' state)
     gotos'' = where' ++ intercalate "\n" (map ("    " ++) lines) where
       lines = join (map goto (gotos' state))
@@ -248,6 +249,14 @@ module Happy.Backend.RAD.CodeGen where
         removeDollar a = maybe a ($ "_") (mapDollarDollar a)
         k' = k "" (head (artCore state))
 
+    fail token 
+      | mlex opts = paren tok ++ " -> happyErrorWrapper t"
+      | otherwise = "t@" ++ paren tok ++ ":_ -> " ++ happyError ++ " ts"
+      where
+        tok = removeDollar $ fromJust (lookup token (token_specs g))
+        removeDollar a = maybe a ($ "_") (mapDollarDollar a)
+        happyError = fromMaybe "happyError" (error_handler g)
+      
     goto (nt, (state, i))
       | hasRank2Type opts g nt = catMaybes [gototype, goto]
       | otherwise = catMaybes [goto]

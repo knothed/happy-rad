@@ -16,6 +16,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   import Data.Graph.Dom
   import Data.Set (Set, toList, fromList, elemAt)
   import qualified Data.IntSet
+  import System.IO.Unsafe
   import GHC.Arr ((!), assocs, listArray, Array(..))
   
   
@@ -24,6 +25,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   type AnnounceAction = (Name, Int)             -- On terminal t --> announce using rule i
   type ReduceAction = (Name, Int)               -- On terminal t --> reduce using rule i
   type ShiftAction = (Name, (Int, [Lr0Item]))   -- On terminal t --> goto state S with items I (= A -> B t . C)
+  type FailAction = (Name)                      -- On terminal t --> fail
   type GotoAction = (Name, (Int, [Lr0Item]))    -- Nonterminal X <-> goto to state S with items I (= A -> B X . C) such that:
                                                 -- g_X v = state_{i+X} (k_i v)
   
@@ -62,6 +64,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     gotos' :: [GotoAction],
     shifts' :: [ShiftAction],
     accepts' :: [AcceptAction], -- ONLY type2 states can have (and always do have) accept actions!
+    fails' :: [FailAction],
     defaultAction' :: RADDefaultAction,
     _raw :: RawRADState
   } deriving (Eq
@@ -88,7 +91,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       nt' = nt (_raw state)
 
   showRadState :: XGrammar -> RADState -> [Char]
-  showRadState x state = "Raw = " ++ showRaw x (_raw state) ++ "\nShifts = " ++ show (shifts' state) ++ "\nGotos = " ++ show (gotos' state) ++ "\nAnnounces = " ++ show (announces' state) ++ "\nAccepts = " ++ show (accepts' state) ++ "\nDefault = " ++ show (defaultAction' state) ++ "\n\n"
+  showRadState x state = "Raw = " ++ showRaw x (_raw state) ++ "\nShifts = " ++ show (shifts' state) ++ "\nGotos = " ++ show (gotos' state) ++ "\nAnnounces = " ++ show (announces' state) ++ "\nAccepts = " ++ show (accepts' state) ++ "\nFails = " ++ show (fails' state) ++ "\nDefault = " ++ show (defaultAction' state) ++ "\n\n"
   
   showRaw :: XGrammar -> RawRADState -> [Char]
   showRaw x raw = "RawRADState " ++ show (i raw) ++ ": " ++ show (radType raw) ++ " (orig state: " ++ show (index (state raw)) ++ " " ++ "(" ++ intercalate "; " (map (showItem (g x)) (coreItems (state raw))) ++ "))" ++
@@ -129,14 +132,13 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     let radStates = lalrToRADStates x lalrStates unusedRules first follow
     
 #ifdef DEBUG
-    -- debugPrint "LALRStates:" (showState g) lalrStates
+    debugPrint "LALRStates:" (showState g) lalrStates
     debugPrint "RADStates:" (showRadState x) radStates
 #endif
     
     return radStates
     
   -- Helper function for printing.
-  
   debugPrint :: String -> (a -> String) -> [a] -> IO ()
   debugPrint title showElem elems = putStrLn $ break ++ dash ++ "\n" ++ title ++ break ++ unlines (map showElem elems) ++ dash ++ break where
     dash = replicate 40 '–'
@@ -172,7 +174,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   -- The "new" raw states which are created for shifting/goto can also be existing ones; therefore, the list of all already created raw states is passed around.
   completeRaw :: XGrammar -> [LALRState] -> RawRADState -> [RawRADState] -> ([Name] -> NameSet) -> Array Name NameSet -> Int -> (RADState, [RawRADState])
   completeRaw x@(XGrammar { g = g }) allStates raw allRawStates first follow stateCount = (radState, newStates) where
-    radState = RADState { shifts' = shifts', accepts' = accepts'', announces' = announces'', gotos' = gotos', defaultAction' = default'', _raw = raw }
+    radState = RADState { shifts' = shifts', accepts' = accepts'', announces' = announces'', gotos' = gotos', fails' = fails', defaultAction' = default'', _raw = raw }
     newStates = gotoStates ++ shiftStates ++ (maybe [] return newStateFromTransformedErrorShift)
     gotos' = transformedGotos
     shifts' = shiftShifts
@@ -186,6 +188,8 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     accepts'' -- If default action is accept, no need for an accept array
       | default'' == Accept' = []
       | otherwise = delete errorTok (rmdups accepts') where rmdups = map head . group . sort
+
+    fails' = fails (state raw)
       
     -- If there is no transformed default action, we choose a suitable default action:
     -- Accept for type2 states, or the largest announce action for other states.
@@ -319,7 +323,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
           | hasOtherAction tok = Nothing -- No accept conflict! This happens e.g. on shift/reduce-conflicts which have been resolved in favor of shift 
           | otherwise = Just tok
         hasOtherAction tok = elem tok otherActions
-        otherActions = (map fst shifts') ++ (map fst announces')
+        otherActions = (map fst shifts') ++ (map fst announces') ++ fails'
         
     -- For a type-1 action: If NT can produce ɛ (either directly, NT -> ɛ or indirectly, NT -> A so that A ->* ɛ) we need a special announce action to announce a related rule.
     type1EpsilonAnnounces
@@ -351,7 +355,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
           itemCanProduceEpsilon = canProduceEpsilon . rhsAfterDot g
           
         (_, _rooted, nodes) = recognitionGraph g artState where
-          artState = LALRState { index = 0, coreItems = core, completionItems = reducedCompletion, shifts = [], gotos = [], reduces = [], defaultAction = Error }
+          artState = LALRState { index = 0, coreItems = core, completionItems = reducedCompletion, shifts = [], gotos = [], reduces = [], fails = [], defaultAction = Error }
         graph = convert _rooted
         
         -- All vertices reachable from the root node
@@ -447,6 +451,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     shifts :: [ShiftAction],
     gotos :: [GotoAction],
     reduces :: [ReduceAction],
+    fails :: [FailAction],
     defaultAction :: LALRDefaultAction -- Do something per default. This action is NOT explicitly mentioned in the shifts/reduces list.
   } deriving (Eq
 #ifdef DEBUG
@@ -465,41 +470,40 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     " – Shifts: " ++ unwords (map showShift (shifts state)) ++
     " – Gotos: " ++ unwords (map showGoto (gotos state)) ++
     " – Reduces: " ++ unwords (map showReduce (reduces state)) ++
+    " – Fails: " ++ unwords (map showFail (fails state)) ++
     " – Default: " ++ show (defaultAction state) where
       showShift (token, (i, items)) = "(on " ++ (token_names g)!token ++ " shift to " ++ show i ++ " with items: " ++ unwords (map (showItem g) items) ++ ")"
       showGoto (nt, (i, items)) = "(on " ++ (token_names g)!nt ++ " goto " ++ show i ++ " with items: " ++ unwords (map (showItem g) items) ++ ")"
       showReduce (token, rule) = "(on " ++ (token_names g)!token ++ " reduce rule " ++ show rule ++ ")"
+      showFail token = "(on " ++ (token_names g)!token ++ " fail)"
   
   -- Create `State` data from the given `CompletedLr0State` and its index.
   createState :: Grammar -> ActionTable -> GotoTable -> Int -> CompletedLr0State -> LALRState
-  createState g action goto i state = LALRState { index = i, coreItems = core state, completionItems = completion state, shifts = shifts, gotos = gotos, reduces = reduces, defaultAction = defaultAction } where
-    gotos = map toGoto allGotos
-    toGoto (nt, Goto toState) = (nt, (toState, items)) where
+  createState g action goto i state = LALRState { index = i, coreItems = core state, completionItems = completion state, shifts = shifts, gotos = gotos, reduces = reduces, fails = fails, defaultAction = defaultAction } where
+    actionEntries = assocs (action ! i)
+    gotoEntries = assocs (goto ! i)
+
+    gotos = catMaybes $ map toGoto gotoEntries
+    toGoto (nt, Goto toState) = Just (nt, (toState, items)) where
       items = plus (completion state) nt g
-    allGotos = filter isGoto $ assocs (goto ! i)
-    isGoto (_, Goto {}) = True
-    isGoto _ = False
+    toGoto _ = Nothing
+
+    fails = catMaybes $ map toFail actionEntries
+    toFail (token, LR'MustFail) = Just token
+    toFail _ = Nothing
     
-    shifts' = map toShift allShifts
-    toShift (token, LR'Shift toState _) = (token, (toState, shiftItems token))
-    toShift (token, LR'Multiple _ (LR'Shift toState _)) = (token, (toState, shiftItems token))
+    shifts' = catMaybes $ map toShift actionEntries
+    toShift (token, LR'Shift toState _) = Just (token, (toState, shiftItems token))
+    toShift (token, LR'Multiple _ (LR'Shift toState _)) = Just (token, (toState, shiftItems token))
+    toShift _ = Nothing
     shiftItems token = plus (completion state) token g
-    allShifts = filter isShift $ assocs (action ! i) -- all shifts from action table
-    isShift (_, LR'Shift {}) = True
-    isShift (_, LR'Multiple _ (LR'Shift {})) = True
-    isShift _ = False
     
-    reduces' = map toReduce allReduces
-    toReduce (token, LR'Reduce rule _) = (token, rule)
-    toReduce (token, LR'Multiple _ (LR'Reduce rule _)) = (token, rule)
-    toReduce (token, LR'Accept) = let (Lr0 rule _) = head (core state) in (token, rule)
-    toReduce (token, LR'Multiple _ LR'Accept) = let (Lr0 rule _) = head (core state) in (token, rule)
-    allReduces = filter isReduce $ assocs (action ! i) -- all reduces from action table
-    isReduce (_, LR'Reduce {}) = True
-    isReduce (_, LR'Multiple _ (LR'Reduce {})) = True
-    isReduce (_, LR'Accept) = True
-    isReduce (_, LR'Multiple _ LR'Accept) = True
-    isReduce _ = False
+    reduces' = catMaybes $ map toReduce actionEntries
+    toReduce (token, LR'Reduce rule _) = Just (token, rule)
+    toReduce (token, LR'Multiple _ (LR'Reduce rule _)) = Just (token, rule)
+    toReduce (token, LR'Accept) = let (Lr0 rule _) = head (core state) in Just (token, rule)
+    toReduce (token, LR'Multiple _ LR'Accept) = let (Lr0 rule _) = head (core state) in Just (token, rule)
+    toReduce _ = Nothing
     
     -- Remove default action (errorShift or reduce) from shifts/reduces
     shifts = filter (\(token, _) -> token /= errorTok) shifts'
