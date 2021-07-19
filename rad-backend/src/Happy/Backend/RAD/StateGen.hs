@@ -91,7 +91,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   showRadState x state = "Raw = " ++ showRaw x (_raw state) ++ "\nShifts = " ++ show (shifts' state) ++ "\nGotos = " ++ show (gotos' state) ++ "\nAnnounces = " ++ show (announces' state) ++ "\nAccepts = " ++ show (accepts' state) ++ "\nDefault = " ++ show (defaultAction' state) ++ "\n\n"
   
   showRaw :: XGrammar -> RawRADState -> [Char]
-  showRaw x raw = "RawRADState " ++ show (i raw) ++ ": " ++ show (radType raw) ++ " (orig state: " ++ show (index (state raw)) ++ " " ++ show (map (showItem (g x)) (coreItems (state raw))) ++ ")" ++
+  showRaw x raw = "RawRADState " ++ show (i raw) ++ ": " ++ show (radType raw) ++ " (orig state: " ++ show (index (state raw)) ++ " " ++ "(" ++ intercalate "; " (map (showItem (g x)) (coreItems (state raw))) ++ "))" ++
     (if radType raw /= Type3 then ". NT = " ++ show (nt raw) ++ " (" ++ ((token_names (g x)) ! (nt raw)) ++ ")" else "") ++
     (if radType raw /= Type1 then ". core = { " ++ intercalate "; " (map (showItem (g x)) (core' raw)) ++ " }" else "") ++
     ". completion = { " ++ intercalate "; " (map (showItem (g x)) (completion' raw)) ++ " }" ++
