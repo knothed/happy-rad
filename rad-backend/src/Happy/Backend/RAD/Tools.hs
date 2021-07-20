@@ -100,9 +100,9 @@ module Happy.Backend.RAD.Tools where
   tokenAtPosition g item pos = tokenAtPosition' (prod g item) pos where
     tokenAtPosition' (Production _ rhs _ _) = (rhs !!)
   
-  -- Determine whether a token is a nonterminal
+  -- Determine whether a token is a nonterminal. Start symbols are also nonterminals.
   isNonterminal :: Grammar -> Name -> Bool
-  isNonterminal = flip elem . non_terminals
+  isNonterminal g n = n >= firstStartTok && n < first_term g
   
   -- Get the nonterminal on the left side of an item
   lhs :: Grammar -> Lr0Item -> Name
