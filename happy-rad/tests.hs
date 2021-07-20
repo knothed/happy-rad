@@ -5,11 +5,16 @@ import Data.List
 
 main = do
   dir <- getDataDir
-  let workingTests = ["Test.ly", "TestMulti.ly", "TestPrecedence.ly", "bug001.ly", "precedence002.y", "bogus-token.y", "bug002.y", "Partial.ly", "issue91.y", "issue94.y"]
+  -- These tests currently fail due to one of these three reasons:
+   -- %monad directive, but no %lexer directive (not yet supported by code-gen)
+   -- an '{%%' or '{%^' action (not yet supported by code-gen)
+   -- using typeclasses. These will not be supported as they interfere with our typing system.
+  let failingTests = ["issue95.y", "test_rules.y", "monaderror.y", "monaderror-explist.y", "typeclass_monad001.y", "typeclass_monad002.ly", "typeclass_monad_lexer.y", "monad001.y", "rank2.y"]
+
   let customTests = ["EpsilonAnnounce.y"]
   let setup = TestSetup {
     happyExec = "happy-rad",
-    defaultTests = workingTests,
+    defaultTests = defaultTestFiles \\ failingTests,
     customTests = customTests,
     customDataDir = dir,
     allArguments = ["--rad", "--rad --types"],
