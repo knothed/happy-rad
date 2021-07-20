@@ -17,7 +17,7 @@ main = do
     defaultTests = defaultTestFiles \\ failingTests,
     customTests = customTests,
     customDataDir = dir,
-    allArguments = ["--rad", "--rad --types"],
+    allArguments = ["--rad --types"], -- some large test files (issue93.y) need type annotations to compile in reasonable time
     stopOnFailure = False
   }
   test setup
