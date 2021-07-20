@@ -141,11 +141,14 @@ module Happy.Backend.RAD.CodeGen where
         line2 = name ++ " cont (Just tok) = cont tok Nothing"
 
       -- happyErrorWrapper :: Token -> Parser a
-      -- happyErrorWrapper _ _ = happyError
+      -- happyErrorWrapper _ _ = happyError, or
+      -- happyErrorWrapper t _ = happyError t
       wrapError = newline [typedecl, definition] where
         name = "happyErrorWrapper"
         typedecl = name ++ " :: " ++ tokenT ++ " -> " ++ parser "a"
-        definition = name ++ " _ _ = " ++ happyError
+        definition
+          | errorHasTokenInput = name ++ " = const . " ++ happyError
+          | otherwise = name ++ " _ _ = " ++ happyError
       
       p a = p' ++ " " ++ a
       parser a = wrapperType opts ++ " " ++ a
@@ -154,6 +157,8 @@ module Happy.Backend.RAD.CodeGen where
       errorTokenT = errorTokenType opts
       (Just (lexer', _)) = lexer g
       happyError = fromMaybe "happyError" (error_handler g)
+      -- When an %error directive is present, the type of happyError is `Token -> P a`, else it is `P a`
+      errorHasTokenInput = not (error_handler g == Nothing)
     
 
   -------------------- GENSTATE -------------------
