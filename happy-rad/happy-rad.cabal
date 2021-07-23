@@ -19,6 +19,7 @@ executable happy-rad
                        happy-frontend == 1.21.0,
                        happy-middleend == 1.21.0,
                        happy-backend == 1.21.0,
+                       happy-backend-glr == 1.21.0,
                        rad-backend == 1.21.0,
                        transformers >= 0.5.6.2,
                        mtl >= 2.2.2

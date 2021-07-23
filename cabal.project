@@ -4,5 +4,6 @@ packages:
  packages/frontend
  packages/middleend
  packages/backend
+ packages/backend-glr
  packages/core
  packages/test
