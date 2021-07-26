@@ -1,4 +1,4 @@
-module Happy.Backend.RAD.CLI(Flag(..), options, characteristicOption, hasCharacteristicFlag, parseFlags) where
+module Happy.Backend.RAD.CLI(Flag(..), options, parseFlags) where
 
 import Happy.Backend.RAD
 import System.Console.GetOpt
@@ -6,12 +6,11 @@ import System.Console.GetOpt
 -------- CLI flags and options --------
 
 data Flag = 
-    OptRAD
-  | OptOutfile String
-  | OptComments
-  | OptShowTypes
-  | OptRankNTypes
-  | OptParserType String
+    OptOutfile String |
+    OptComments |
+    OptShowTypes |
+    OptRankNTypes |
+    OptParserType String
   deriving Eq
 
 -- All options, without the characteristic "rad" option.
@@ -24,15 +23,7 @@ options = [
     Option "" ["parsertype"] (ReqArg OptParserType "NAME") "use NAME instead of `Parser` as type for the RAD parser wrapper"
   ]
 
--- Use this option when using this backend together with another backend.
-characteristicOption :: OptDescr Flag
-characteristicOption = Option "r" ["rad"] (NoArg OptRAD) "generate a recursive ascent-descent parser"
-
 -------- [Flag] to RADBackendArgs conversion --------
-
--- Determines whether the characteristic "rad" flag is set.
-hasCharacteristicFlag :: [Flag] -> Bool
-hasCharacteristicFlag = elem OptRAD
 
 parseFlags :: [Flag] -> String -> RADBackendArgs
 parseFlags cli base = RADBackendArgs {

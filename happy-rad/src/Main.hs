@@ -17,17 +17,25 @@ import Control.Monad.Trans.Except
 import Control.Monad.Except
 import Paths_happy_rad (version)
 
--- All flags
-data HappyFlag = Frontend FrontendCLI.Flag | Middleend MiddleendCLI.Flag | Backend BackendCLI.Flag | GLRBackend GLRBackendCLI.Flag | RADBackend RADBackendCLI.Flag deriving Eq
+-- Options for switching between backend, rad-backend and glr-backend
+useGLROption, useRADOption :: OptDescr TopLevelFlag
+useGLROption = Option "l" ["glr"] (NoArg OptGLR) "Generate a GLR parser for ambiguous grammars"
+useRADOption = Option "r" ["rad"] (NoArg OptRAD) "generate a recursive ascent-descent parser"
+data TopLevelFlag = OptGLR | OptRAD deriving Eq
+
+-- Combine the flags from all the packages
+data HappyFlag = TopLevel TopLevelFlag | Frontend FrontendCLI.Flag | Middleend MiddleendCLI.Flag | Backend BackendCLI.Flag | GLRBackend GLRBackendCLI.Flag | RADBackend RADBackendCLI.Flag deriving Eq
 
 as :: Functor f => [f a] -> (a -> b) -> [f b]
 a `as` b = map (fmap b) a
 
+getTopLevel :: [HappyFlag] -> [TopLevelFlag]
 getFrontend :: [HappyFlag] -> [FrontendCLI.Flag]
 getMiddleend :: [HappyFlag] -> [MiddleendCLI.Flag]
 getBackend :: [HappyFlag] -> [BackendCLI.Flag]
 getGLRBackend :: [HappyFlag] -> [GLRBackendCLI.Flag]
 getRADBackend :: [HappyFlag] -> [RADBackendCLI.Flag]
+getTopLevel flags = [a | TopLevel a <- flags]
 getFrontend flags = [a | Frontend a <- flags]
 getMiddleend flags = [a | Middleend a <- flags]
 getBackend flags = [a | Backend a <- flags]
@@ -41,10 +49,12 @@ allOptions =
   MiddleendCLI.options `as` Middleend ++
   BackendCLI.options `as` Backend ++
   -- Add the "--glr" option. Remove options that are already declared in happy-backend like outfile, template, ghc, debug.
-  removeAllOverlaps BackendCLI.options (GLRBackendCLI.characteristicOption : GLRBackendCLI.options) `as` GLRBackend ++
+  [useGLROption] `as` TopLevel ++
+  removeAllOverlaps BackendCLI.options GLRBackendCLI.options `as` GLRBackend ++
   -- Add the "--rad" option. Remove options that are already declared in happy-backend like outfile.
   -- Also remove possible short-option overlaps with GLR flags.
-  (cleanShortOverlaps GLRBackendCLI.options . removeAllOverlaps BackendCLI.options) (RADBackendCLI.characteristicOption : RADBackendCLI.options) `as` RADBackend
+  [useRADOption] `as` TopLevel ++
+  (cleanShortOverlaps GLRBackendCLI.options . removeAllOverlaps BackendCLI.options) RADBackendCLI.options `as` RADBackend
 
 -- Main
 main :: IO ()
@@ -58,16 +68,14 @@ main = do
   (action, goto, items, unused_rules) <- MiddleendCLI.parseAndRun (getMiddleend flags) filename basename grammar
 
   -- Backend / GLRBackend / RADBackend switching
-  let glrFlags = getGLRBackend flags
-  let radFlags = getRADBackend flags
-  let isGLR = GLRBackendCLI.hasCharacteristicFlag glrFlags
-  let isRAD = RADBackendCLI.hasCharacteristicFlag radFlags
+  let useGLR = OptGLR `elem` getTopLevel flags
+  let useRAD = OptRAD `elem` getTopLevel flags
   backendOpts <- BackendCLI.parseFlags (getBackend flags) basename
 
-  case (isGLR, isRAD) of
+  case (useGLR, useRAD) of
     (True, True) -> dieHappy "You cannot use GLR and RAD at the same time."
-    (True, False) -> GLRBackend.runGLRBackend (createGLROpts glrFlags backendOpts basename) grammar action goto
-    (False, True) -> RADBackend.runRADBackend (createRADOpts radFlags backendOpts basename) grammar action goto items unused_rules
+    (True, False) -> GLRBackend.runGLRBackend (createGLROpts (getGLRBackend flags) backendOpts basename) grammar action goto
+    (False, True) -> RADBackend.runRADBackend (createRADOpts (getRADBackend flags) backendOpts basename) grammar action goto items unused_rules
     (False, False) -> Backend.runBackend backendOpts grammar action goto
 
 -- Fill those glr-options that were removed due to overlap with happy-backend's options
