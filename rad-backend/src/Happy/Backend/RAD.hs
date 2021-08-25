@@ -1,8 +1,8 @@
 module Happy.Backend.RAD(RADBackendArgs(..), TypeAnnotations(..), runRADBackend) where
 
-import Happy.Core.Grammar
-import Happy.Core.Tables
-import Happy.Middleend
+import Happy.Grammar.Grammar
+import Happy.Tabular
+import Happy.Tabular.Tables
 import Happy.Backend.RAD.CodeGen
 import Happy.Backend.RAD.StateGen
 import Paths_rad_backend

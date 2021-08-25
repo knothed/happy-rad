@@ -1,11 +1,12 @@
 module Happy.Backend.RAD.Follow where
-  import Happy.Core.Grammar
-  import Happy.Core.NameSet (NameSet, empty, fromList, union, unions, delete, member, singleton)
+  import Happy.Grammar.Grammar
   import Happy.Backend.RAD.Tools
+  import Happy.Tabular
   import Control.Monad
   import Control.Monad.ST
   import Data.Array.ST
   import Data.List (findIndices, tails)
+  import Data.IntSet (IntSet, empty, fromList, union, unions, delete, member, singleton)
   import GHC.Arr
 
   -- Calculate the follow sets for all nonterminals in the grammar.

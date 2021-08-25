@@ -1,15 +1,16 @@
 module Happy.Backend.RAD.Tools where
-  import Happy.Core.Grammar
-  import Happy.Core.Tables
-  import Happy.Middleend
+  import Happy.Grammar.Grammar
+  import Happy.Tabular
+  import Happy.Tabular.Tables
   import Data.Maybe
   import Data.List (findIndex)
-  import Data.IntSet ()
-  import Data.IntMap ()
+  import Data.IntSet (IntSet)
   import qualified Data.Set as Set
   import Data.Set (Set, toList, fromList, union, (\\))
   import GHC.Arr
-    
+  
+  type NameSet = IntSet
+  
   ----- COMPLETE LR0 STATES -----
   
   data CompletedLr0State = CompletedLr0State [Lr0Item] [Lr0Item]

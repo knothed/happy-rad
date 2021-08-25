@@ -1,10 +1,10 @@
 module Happy.Backend.RAD.CodeGen where
-  import Happy.Backend.RAD.Tools (XGrammar(..), showItem, showProd, lhs, showRecognitionPoint, recognitionPoints, rhsAfterDot)
+  import Happy.Backend.RAD.Tools (XGrammar(..), NameSet(..), showItem, showProd, lhs, showRecognitionPoint, recognitionPoints, rhsAfterDot)
   import qualified Happy.Backend.RAD.Tools as RADTools
-  import Happy.Core.Grammar
-  import Happy.Core.Tables
-  import Happy.Core.GenUtils (mapDollarDollar)
-  import Happy.Middleend
+  import Happy.Grammar.Grammar
+  import Happy.Grammar.GenUtils (mapDollarDollar)
+  import Happy.Tabular
+  import Happy.Tabular.Tables
   import Happy.Backend.RAD.StateGen
   import Control.Monad
   import Data.List

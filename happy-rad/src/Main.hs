@@ -1,15 +1,15 @@
 module Main where
 
 import qualified Happy.Frontend.CLI as FrontendCLI
-import qualified Happy.Middleend.CLI as MiddleendCLI
+import qualified Happy.Tabular.CLI as TabularCLI
 import qualified Happy.Backend.CLI as BackendCLI
 import qualified Happy.Backend.RAD.CLI as RADBackendCLI
 import qualified Happy.Backend.GLR.CLI as GLRBackendCLI
 import qualified Happy.Backend as Backend
 import qualified Happy.Backend.RAD as RADBackend
 import qualified Happy.Backend.GLR as GLRBackend
-import Happy.Core.GenUtils
-import Happy.Core.OptionParsing
+import Happy.Grammar.GenUtils
+import Happy.CLI.OptionParsing
 import System.IO
 import System.Environment
 import System.Console.GetOpt
@@ -24,20 +24,20 @@ useRADOption = Option "r" ["rad"] (NoArg OptRAD) "generate a recursive ascent-de
 data TopLevelFlag = OptGLR | OptRAD deriving Eq
 
 -- Combine the flags from all the packages
-data HappyFlag = TopLevel TopLevelFlag | Frontend FrontendCLI.Flag | Middleend MiddleendCLI.Flag | Backend BackendCLI.Flag | GLRBackend GLRBackendCLI.Flag | RADBackend RADBackendCLI.Flag deriving Eq
+data HappyFlag = TopLevel TopLevelFlag | Frontend FrontendCLI.Flag | Tabular TabularCLI.Flag | Backend BackendCLI.Flag | GLRBackend GLRBackendCLI.Flag | RADBackend RADBackendCLI.Flag deriving Eq
 
 as :: Functor f => [f a] -> (a -> b) -> [f b]
 a `as` b = map (fmap b) a
 
 getTopLevel :: [HappyFlag] -> [TopLevelFlag]
 getFrontend :: [HappyFlag] -> [FrontendCLI.Flag]
-getMiddleend :: [HappyFlag] -> [MiddleendCLI.Flag]
+getTabular :: [HappyFlag] -> [TabularCLI.Flag]
 getBackend :: [HappyFlag] -> [BackendCLI.Flag]
 getGLRBackend :: [HappyFlag] -> [GLRBackendCLI.Flag]
 getRADBackend :: [HappyFlag] -> [RADBackendCLI.Flag]
 getTopLevel flags = [a | TopLevel a <- flags]
 getFrontend flags = [a | Frontend a <- flags]
-getMiddleend flags = [a | Middleend a <- flags]
+getTabular flags = [a | Tabular a <- flags]
 getBackend flags = [a | Backend a <- flags]
 getGLRBackend flags = [a | GLRBackend a <- flags]
 getRADBackend flags = [a | RADBackend a <- flags]
@@ -46,7 +46,7 @@ getRADBackend flags = [a | RADBackend a <- flags]
 allOptions :: [OptDescr HappyFlag]
 allOptions =
   FrontendCLI.options `as` Frontend ++
-  MiddleendCLI.options `as` Middleend ++
+  TabularCLI.options `as` Tabular ++
   BackendCLI.options `as` Backend ++
   -- Add the "--glr" option. Remove options that are already declared in happy-backend like outfile, template, ghc, debug.
   [useGLROption] `as` TopLevel ++
@@ -65,7 +65,7 @@ main = do
   basename <- FrontendCLI.getBaseName filename
 
   grammar <- try $ FrontendCLI.parseAndRun (getFrontend flags) filename basename
-  (action, goto, items, unused_rules) <- MiddleendCLI.parseAndRun (getMiddleend flags) filename basename grammar
+  (action, goto, items, unused_rules) <- TabularCLI.parseAndRun (getTabular flags) filename basename grammar
 
   -- Backend / GLRBackend / RADBackend switching
   let useGLR = OptGLR `elem` getTopLevel flags

@@ -1,9 +1,10 @@
 packages:
  happy-rad
  rad-backend
- packages/frontend
- packages/middleend
  packages/backend
  packages/backend-glr
- packages/core
+ packages/cli
+ packages/frontend
+ packages/grammar
+ packages/tabular
  packages/test

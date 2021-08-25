@@ -1,11 +1,10 @@
 module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, createXGrammar, artCore, hdiv, plus, RADType(..), RADState(..), LALRState(..), RawRADState(..), LALRDefaultAction(..), RADDefaultAction(..)) where
-  import Happy.Core.Grammar
-  import Happy.Core.Tables
-  import Happy.Core.NameSet (NameSet)
-  import Happy.Middleend
-  import Happy.Middleend.First
+  import Happy.Grammar.Grammar
+  import Happy.Tabular
+  import Happy.Tabular.Tables
+  import Happy.Tabular.First
   import Happy.Backend.RAD.Follow
-  import Happy.Backend.RAD.Tools (CompletedLr0State, XGrammar(..), complete, showItem, showProd, lhs, core, completion, prod, hasTokenAfterDot, tokenAfterDot, rhsLength', isInDirectCompletion, dotIsAtRightEnd, plus, hdiv, radCompletion, itemsStartingWith, plusRad, completeWithFunction, directCompletion, rhsAfterDot, showRecognitionPoint)
+  import Happy.Backend.RAD.Tools (CompletedLr0State, XGrammar(..), NameSet(..), complete, showItem, showProd, lhs, core, completion, prod, hasTokenAfterDot, tokenAfterDot, rhsLength', isInDirectCompletion, dotIsAtRightEnd, plus, hdiv, radCompletion, itemsStartingWith, plusRad, completeWithFunction, directCompletion, rhsAfterDot, showRecognitionPoint)
   import qualified Happy.Backend.RAD.Tools as RADTools
   import Control.Monad
   import Data.List
@@ -17,8 +16,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   import Data.Set (Set, toList, fromList, elemAt)
   import qualified Data.IntSet
   import GHC.Arr ((!), assocs, listArray, Array(..))
-  
-  
+
   -- Types which are used (both) for LALR and RAD states:
   type AcceptAction = (Name)                    -- On terminal t --> accept
   type AnnounceAction = (Name, Int)             -- On terminal t --> announce using rule i
