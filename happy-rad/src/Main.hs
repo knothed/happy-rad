@@ -8,7 +8,7 @@ import qualified Happy.Backend.GLR.CLI as GLRBackendCLI
 import qualified Happy.Backend as Backend
 import qualified Happy.Backend.RAD as RADBackend
 import qualified Happy.Backend.GLR as GLRBackend
-import Happy.Grammar.GenUtils
+import Happy.CLI.Dying
 import Happy.CLI.OptionParsing
 import System.IO
 import System.Environment
