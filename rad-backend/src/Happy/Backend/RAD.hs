@@ -1,8 +1,9 @@
 module Happy.Backend.RAD(RADBackendArgs(..), TypeAnnotations(..), runRADBackend) where
 
-import Happy.Grammar.Grammar
+import Happy.CodeGen.Common.Options
+import Happy.Grammar
 import Happy.Tabular
-import Happy.Tabular.Tables
+import Happy.Tabular.LALR
 import Happy.Backend.RAD.CodeGen
 import Happy.Backend.RAD.StateGen
 import Paths_rad_backend
@@ -19,11 +20,11 @@ data RADBackendArgs = RADBackendArgs {
 
 data TypeAnnotations = Never | Always | RankN deriving Eq -- Rank2 implies Always
 
-runRADBackend :: RADBackendArgs -> Grammar -> ActionTable -> GotoTable -> [Lr1State] -> [Int] -> IO ()
-runRADBackend opts g action goto items unused_rules =
-    let (isMonad, _, parserType, _, _) = monad g
+runRADBackend :: RADBackendArgs -> Grammar -> Maybe String -> Maybe String -> CommonOptions -> ActionTable -> GotoTable -> [Lr1State] -> [Int] -> IO ()
+runRADBackend opts g hd tl common action goto items unused_rules =
+    let (isMonad, _, parserType, _, _) = monad common
     
-        ptype = case (lexer g, isMonad) of
+        ptype = case (lexer common, isMonad) of
           (Nothing, False) -> Normal
           (Nothing, True) -> Monad
           (Just _, False) -> error "%lexer without %monad not supported in RAD"
@@ -43,7 +44,7 @@ runRADBackend opts g action goto items unused_rules =
     
         lalrStates = generateLALRStates g action goto items in do
 
-        x <- createXGrammar g lalrStates
+        x <- createXGrammar g hd tl common lalrStates
         radStates <- generateRADStates x lalrStates unused_rules
         genCode options x radStates action goto unused_rules >>=
           if (outFile opts) == "-" then putStr else writeFile (outFile opts)

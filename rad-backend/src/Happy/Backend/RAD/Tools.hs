@@ -1,7 +1,8 @@
 module Happy.Backend.RAD.Tools where
-  import Happy.Grammar.Grammar
+  import Happy.Grammar
   import Happy.Tabular
-  import Happy.Tabular.Tables
+  import Happy.Tabular.LALR
+  import Happy.CodeGen.Common.Options
   import Data.Maybe
   import Data.List (findIndex)
   import Data.IntSet (IntSet)
@@ -187,6 +188,9 @@ module Happy.Backend.RAD.Tools where
   -- Extended grammar containing RAD-relevant data like recognition points.
   data XGrammar = XGrammar {
     g :: Grammar,
+    hd :: Maybe String,
+    tl :: Maybe String,
+    common :: CommonOptions,
     recognitionPoints :: [Int]
   }
   

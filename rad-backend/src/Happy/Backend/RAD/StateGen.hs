@@ -1,7 +1,8 @@
 module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, createXGrammar, artCore, hdiv, plus, RADType(..), RADState(..), LALRState(..), RawRADState(..), LALRDefaultAction(..), RADDefaultAction(..)) where
-  import Happy.Grammar.Grammar
+  import Happy.CodeGen.Common.Options
+  import Happy.Grammar
   import Happy.Tabular
-  import Happy.Tabular.Tables
+  import Happy.Tabular.LALR
   import Happy.Tabular.First
   import Happy.Backend.RAD.Follow
   import Happy.Backend.RAD.Tools (CompletedLr0State, XGrammar(..), NameSet(..), complete, showItem, showProd, lhs, core, completion, prod, hasTokenAfterDot, tokenAfterDot, rhsLength', isInDirectCompletion, dotIsAtRightEnd, plus, hdiv, radCompletion, itemsStartingWith, plusRad, completeWithFunction, directCompletion, rhsAfterDot, showRecognitionPoint)
@@ -99,14 +100,14 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
 
 
   -- Create the extended grammar containing information about the recognition points.
-  createXGrammar :: Grammar -> [LALRState] -> IO XGrammar
-  createXGrammar g lalrStates = do
+  createXGrammar :: Grammar -> Maybe String -> Maybe String -> CommonOptions -> [LALRState] -> IO XGrammar
+  createXGrammar g hd tl opts lalrStates = do
     -- Create state graphs; determine recognition points for each rule
     let allGraphs = map (recognitionGraph g) lalrStates
     let nonfree = nonfreeItems g allGraphs
     let recognitionPoints = determineRecognitionPoints g nonfree
     
-    let x = XGrammar { g = g, recognitionPoints = recognitionPoints }
+    let x = XGrammar { g = g, hd = hd, tl = tl, common = opts, recognitionPoints = recognitionPoints }
     
 #ifdef DEBUG
     debugPrint "State Graphs:" (showGraph g) allGraphs

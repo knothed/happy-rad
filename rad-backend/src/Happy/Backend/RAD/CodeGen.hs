@@ -1,9 +1,10 @@
 module Happy.Backend.RAD.CodeGen where
   import Happy.Backend.RAD.Tools (XGrammar(..), NameSet(..), showItem, showProd, lhs, showRecognitionPoint, recognitionPoints, rhsAfterDot)
   import qualified Happy.Backend.RAD.Tools as RADTools
-  import Happy.Grammar.Grammar
+  import Happy.CodeGen.Common.Options
+  import Happy.Grammar
   import Happy.Tabular
-  import Happy.Tabular.Tables
+  import Happy.Tabular.LALR
   import Happy.Backend.RAD.StateGen
   import Control.Monad
   import Data.List
@@ -53,26 +54,27 @@ module Happy.Backend.RAD.CodeGen where
           extension str = "{-# LANGUAGE " ++ str ++ " #-}"
         
       g = (RADTools.g x)
-      header' = fromMaybe "" (hd g)
-      entryPoints' = newlines 2 $ map (entryPoint opts g states) (starts g)
-      definitions' = definitions opts g
+      common = (RADTools.common x)
+      header' = fromMaybe "" (hd x)
+      entryPoints' = newlines 2 $ map (entryPoint opts x states) (starts g)
+      definitions' = definitions opts x
       
       rules' = newlines 2 $ map (genRule opts x) $ filter (not . flip elem unused_rules) [0..prods]
       parseNTs' = newlines 2 $ catMaybes $ map (genParseNT opts g states) (non_terminals g)
-      parseTerminals' = newlines 2 $ map (genParseTerminal opts g) (delete errorTok (terminals g))
+      parseTerminals' = newlines 2 $ map (genParseTerminal opts x) (delete errorTok (terminals g))
       
       states' = newlines 2 $ map (genState opts x) states
       
-      actions' = newlines 2 $ map (genAction opts g) [0..prods]
+      actions' = newlines 2 $ map (genAction opts x) [0..prods]
       prods = length (productions g) - 1
-      footer' = fromMaybe "" (tl g)
+      footer' = fromMaybe "" (tl x)
     
 
   -------------------- ENTRYPOINT --------------------
-  entryPoint :: GenOptions -> Grammar -> [RADState] -> (String, Name, Name, Bool) -> String
-  entryPoint opts g states (name, lhs, rhs, isPartial) = newline [typedecl, definition] where
+  entryPoint :: GenOptions -> XGrammar -> [RADState] -> (String, Name, Name, Bool) -> String
+  entryPoint opts x@XGrammar { RADTools.g = g, RADTools.common = common_ } states (name, lhs, rhs, isPartial) = newline [typedecl, definition] where
     typedecl
-      | showTypes opts = fromMaybe "" $ fmap (((name ++ " :: ") ++) . correctP) (symboltype opts g rhs)
+      | showTypes opts = fromMaybe "" $ fmap (((name ++ " :: ") ++) . correctP) (symboltype opts x rhs)
       | otherwise = ""
       
     correctP = if mlex opts then p else parser
@@ -95,13 +97,13 @@ module Happy.Backend.RAD.CodeGen where
     
     p a = p' ++ " " ++ a
     parser a = wrapperType opts ++ " " ++ a
-    (_, _, p', _, returnP) = monad g
+    (_, _, p', _, returnP) = monad common_
 
 
   -------------------- DEFINITIONS --------------------
   -- Generate definitions such as wrappers, the parser type or more required functions and types
-  definitions :: GenOptions -> Grammar -> String
-  definitions opts g = case ptype opts of
+  definitions :: GenOptions -> XGrammar -> String
+  definitions opts x@XGrammar { RADTools.g = g, RADTools.common = common } = case ptype opts of
     Normal -> newlines 2 [parserDecl, errorToken]
     Monad -> newlines 2 [parserDecl, errorToken, wrapThen]
     MonadLexer -> newlines 2 [parserDecl, errorToken, wrapThen, repeatTok, wrapLexer, wrapError]
@@ -151,19 +153,19 @@ module Happy.Backend.RAD.CodeGen where
       
       p a = p' ++ " " ++ a
       parser a = wrapperType opts ++ " " ++ a
-      (_, _, p', thenP, _) = monad g
-      tokenT = token_type g
+      (_, _, p', thenP, _) = monad common
+      tokenT = token_type common
       errorTokenT = errorTokenType opts
-      (Just (lexer', _)) = lexer g
-      happyError = fromMaybe "happyError" (error_handler g)
+      (Just (lexer', _)) = lexer common
+      happyError = fromMaybe "happyError" (error_handler common)
       -- When an %error directive is present, the type of happyError is `Token -> P a`, else it is `P a`
-      errorHasTokenInput = not (error_handler g == Nothing)
+      errorHasTokenInput = not (error_handler common == Nothing)
     
 
   -------------------- GENSTATE -------------------
   -- Generate the code for a single state.
   genState :: GenOptions -> XGrammar -> RADState -> String
-  genState opts x@XGrammar { RADTools.g = g } state
+  genState opts x@XGrammar { RADTools.g = g, RADTools.common = common } state
     | isTrivialAccept = newline [comment, trivialTypedecl, trivialAcceptHeader]
     | isTrivialAnnounce = newline [comment, trivialTypedecl, trivialAnnounceHeader]
     | otherwise = newline [comment, typedecl, header, shifts'', announces'', fails'', accepts'', defaultAction'', gotos''] where
@@ -176,13 +178,13 @@ module Happy.Backend.RAD.CodeGen where
       Announce' _ -> hasNoActions
       _ -> False
       
-    hasRank2Goto = any ((hasRank2Type opts g) . fst) (gotos' state)
+    hasRank2Goto = any ((hasRank2Type opts x) . fst) (gotos' state)
     hasRank2TypeSignature = any (hasRank2Item) (artCore state)
-    hasRank2Item item = any (hasRank2Type opts g) (rhsAfterDot g item)
+    hasRank2Item item = any (hasRank2Type opts x) (rhsAfterDot g item)
     
     trivialTypedecl
-      | rank2Types opts && hasRank2Goto = fromMaybe "" (stateTypeSignature opts g True state)
-      | showTypes opts = fromMaybe "" (stateTypeSignature opts g False state)
+      | rank2Types opts && hasRank2Goto = fromMaybe "" (stateTypeSignature opts x True state)
+      | showTypes opts = fromMaybe "" (stateTypeSignature opts x False state)
       | otherwise = ""
       
     trivialAcceptHeader = "state" ++ show (raw i state) ++ " = id"
@@ -195,10 +197,10 @@ module Happy.Backend.RAD.CodeGen where
       | otherwise = ""
     
     typedecl
-      | rank2Types opts && hasRank2Goto = fromMaybe "" (stateTypeSignature opts g True state)
-      | rank2Types opts && hasRank2TypeSignature = fromMaybe "" (stateTypeSignature opts g False state)
-      | showTypes opts = fromMaybe "" (stateTypeSignature opts g False state)
-      | otherwise = ""
+      | rank2Types opts && hasRank2Goto = fromMaybe "" (stateTypeSignature opts x True state)
+      | rank2Types opts && hasRank2TypeSignature = fromMaybe "" (stateTypeSignature opts x False state)
+      | showTypes opts = fromMaybe "" (stateTypeSignature opts x False state)
+      | otherwise = ""
       
     shifts'' = newlineMap "  " shift (shifts' state)
     announces'' = newlineMap "  " announce (announces' state)
@@ -232,7 +234,7 @@ module Happy.Backend.RAD.CodeGen where
         eofCase = "[] -> rule" ++ show rule ++ " " ++ paren (k "" item) ++ " ts"
 
         tokMaybeEof = if token == eof_term g then eof else tok
-        Just (_, eof) = lexer g
+        Just (_, eof) = lexer common
 
         item = fromJust $ find matches (raw completion' state) where -- the item in the completion corresponding to (i.e. of the) rule which is announced. The dot must be at the recognition point.
           matches (Lr0 rule' dot) = rule == rule' && (recognitionPoints x) !! rule == dot
@@ -240,7 +242,7 @@ module Happy.Backend.RAD.CodeGen where
         rawToken = fromJust $ lookup token (token_specs g)
         
     accept token
-      | mlex opts = paren tokMaybeEof ++ " -> repeatTok t $ " ++ k'
+      | mlex opts = paren tokMaybeEof ++ " -> repeatTok t $ " ++ k'
       | otherwise = if token == eof_term g then eofCase else normalCase
       where
         normalCase = "t@" ++ paren tok ++ ":tr -> " ++ k' ++ " ts"
@@ -248,7 +250,7 @@ module Happy.Backend.RAD.CodeGen where
         
         tokMaybeEof = if token == eof_term g then eof else tok
         tok = removeDollar $ fromJust (lookup token (token_specs g))
-        Just (_, eof) = lexer g
+        Just (_, eof) = lexer common
         
         removeDollar a = maybe a ($ "_") (mapDollarDollar a)
         k' = k "" (head (artCore state))
@@ -259,14 +261,14 @@ module Happy.Backend.RAD.CodeGen where
       where
         tok = removeDollar $ fromJust (lookup token (token_specs g))
         removeDollar a = maybe a ($ "_") (mapDollarDollar a)
-        happyError = fromMaybe "happyError" (error_handler g)
+        happyError = fromMaybe "happyError" (error_handler common)
       
     goto (nt, (state, i))
-      | hasRank2Type opts g nt = catMaybes [gototype, goto]
+      | hasRank2Type opts x nt = catMaybes [gototype, goto]
       | otherwise = catMaybes [goto]
       where
         i' = map dotleft i
-        gototype = case symboltype opts g nt of
+        gototype = case symboltype opts x nt of
           Just t -> Just $ "g" ++ show nt ++ " :: " ++ t ++ " -> " ++ paren outtype
           Nothing -> Nothing
         goto
@@ -300,7 +302,7 @@ module Happy.Backend.RAD.CodeGen where
     defaultError
       | mlex opts = "_ -> happyErrorWrapper t"
       | otherwise = "_ -> " ++ happyError ++ " ts" where
-      happyError = fromMaybe "happyError" (error_handler g)
+      happyError = fromMaybe "happyError" (error_handler common)
     
     k = if optimize opts then kEta else kNoEta
 
@@ -323,24 +325,24 @@ module Happy.Backend.RAD.CodeGen where
       kArity' idx = length $ rhsAfterDot g ((artCore state) !! idx)
 
    -- Create the type signature for a state.
-  stateTypeSignature :: GenOptions -> Grammar -> Bool -> RADState -> Maybe String
-  stateTypeSignature opts g forall_r state = do
+  stateTypeSignature :: GenOptions -> XGrammar -> Bool -> RADState -> Maybe String
+  stateTypeSignature opts x forall_r state = do
     let start = "state" ++ show (raw i state) ++ " :: " ++ forall
     components <- mapM component (artCore state)
     return $ start ++ intercalate " -> " (map paren (components ++ [outtype]))
     where
       component item@(Lr0 rule dot)
         | rule < 0 = if dot == 0 then component' [-rule] else component' [] -- artifical NT
-        | rule >= 0 = component' (rhsAfterDot g item)
-      component' rhs = fmap (intercalate " -> " . (++ [outtype])) (mapM (symboltype opts g) rhs)
+        | rule >= 0 = component' (rhsAfterDot (g x) item)
+      component' rhs = fmap (intercalate " -> " . (++ [outtype])) (mapM (symboltype opts x) rhs)
       outtype = wrapperType opts ++ " r"
       forall = if forall_r then "forall r. " else ""
 
 
   -------------------- GENACTION --------------------
   -- Create the code for a semantic action, i.e. a reduce action.
-  genAction :: GenOptions -> Grammar -> Int -> String
-  genAction opts g i = newline [comment, typedecl, code] where
+  genAction :: GenOptions -> XGrammar -> Int -> String
+  genAction opts x@XGrammar { RADTools.g = g } i = newline [comment, typedecl, code] where
     prod@(Production lhs' rhs' _ _) = lookupProdNo g i
     
     comment
@@ -351,7 +353,7 @@ module Happy.Backend.RAD.CodeGen where
       | showTypes opts || rank2Types opts = typedecl' -- some actions (not further specified) need to be explicitly typed in order for rank-n-types to work
       | otherwise = ""
       where
-        typedecl' = fromMaybe "" $ fmap (("action" ++ show i ++ " :: ") ++) (actionTypedecl opts g i)
+        typedecl' = fromMaybe "" $ fmap (("action" ++ show i ++ " :: ") ++) (actionTypedecl opts x i)
     
     code = header ++ (if isMonadic then monadicCode else normalCode)
     (customCode, isMonadic) = customProdCode prod
@@ -361,15 +363,15 @@ module Happy.Backend.RAD.CodeGen where
     v n = "v" ++ show n
     
   -- Generate the type signature of a semantic action function.
-  actionTypedecl :: GenOptions -> Grammar -> Int -> Maybe String
-  actionTypedecl opts g i = do
-    lhstype <- symboltype opts g lhs'
+  actionTypedecl :: GenOptions -> XGrammar -> Int -> Maybe String
+  actionTypedecl opts x i = do
+    lhstype <- symboltype opts x lhs'
     let lhs = paren $ intercalate " -> " $ [lhstype, outtype]
-    rhstypes <- mapM (symboltype opts g) rhs'
+    rhstypes <- mapM (symboltype opts x) rhs'
     let rhs = intercalate " -> " $ rhstypes ++ [outtype]
     return (lhs ++ " -> " ++ rhs)
     where
-      Production lhs' rhs' _ _ = lookupProdNo g i
+      Production lhs' rhs' _ _ = lookupProdNo (g x) i
       outtype = wrapperType opts ++ " r"
       
   -- Read and translate the raw action code supplied by the user. Also return whether the action is monadic or not.
@@ -400,8 +402,8 @@ module Happy.Backend.RAD.CodeGen where
     
 
   -- Generate the code for parsing a single terminal.
-  genParseTerminal :: GenOptions -> Grammar -> Int -> String
-  genParseTerminal opts g token = newline [comment, typedecl, code] where
+  genParseTerminal :: GenOptions -> XGrammar -> Int -> String
+  genParseTerminal opts x@XGrammar { RADTools.g = g, RADTools.common = common } token = newline [comment, typedecl, code] where
     specialEof = ptype opts /= MonadLexer && token == eof_term g
     
     comment
@@ -415,7 +417,7 @@ module Happy.Backend.RAD.CodeGen where
       where
         typedecl' = maybe "" (\token' -> "parse" ++ show token ++ " :: " ++ paren (token' ++ " -> " ++ parser) ++ " -> " ++ parser) token'
         typedecl'' = "parse" ++ show token ++ " :: " ++ parser ++ " -> " ++ parser
-        token' = symboltype opts g token
+        token' = symboltype opts x token
         parser = wrapperType opts ++ " r"
         
     code
@@ -426,7 +428,7 @@ module Happy.Backend.RAD.CodeGen where
       lineEof1 = "parse" ++ show token ++ " k [] = k []"
       line1 = "parse" ++ show token ++ " k (t@" ++ paren tok ++ ":tr) = k " ++ t ++ " tr"
       line2 = "parse" ++ show token ++ " k ts = " ++ happyError ++ " ts"
-      happyError = fromMaybe "happyError" (error_handler g)
+      happyError = fromMaybe "happyError" (error_handler common)
       
       rawToken = fromJust $ lookup token (token_specs g)        
       tok = replaceDollar rawToken (if wantsProjection then "v" else "_")
@@ -439,7 +441,7 @@ module Happy.Backend.RAD.CodeGen where
         | token == eof_term g = "  " ++ paren eof ++ " -> k"
         | otherwise = "  " ++ paren tok ++ " -> k " ++ t
         where
-        Just (_, eof) = lexer g        
+        Just (_, eof) = lexer common
         
       lineLex3 = "  _ -> happyErrorWrapper t"
     
@@ -516,7 +518,7 @@ module Happy.Backend.RAD.CodeGen where
       lineTypes = map toType [1..n]
       toType i = fromMaybe "" (toType' i)
       toType' i = do
-        lhs <- mapM (symboltype opts (RADTools.g x)) (take i rhsAfterDot')
+        lhs <- mapM (symboltype opts x) (take i rhsAfterDot')
         let lhsType = intercalate " -> " (lhs ++ [parser])
         return $ "  cont" ++ show i ++ " :: " ++ lhsType where
           parser = paren $ wrapperType opts ++ " r"
@@ -530,7 +532,7 @@ module Happy.Backend.RAD.CodeGen where
     let g = RADTools.g x
     let recog = (recognitionPoints x) !! rule
     let lhs' = rhsAfterDot g (Lr0 rule recog)
-    lhstypes <- mapM (symboltype opts g) lhs'
+    lhstypes <- mapM (symboltype opts x) lhs'
     let lhs = forall ++ (paren $ intercalate " -> " $ lhstypes ++ [parser])
     return (lhs ++ " -> " ++ parser)
     where
@@ -550,16 +552,16 @@ module Happy.Backend.RAD.CodeGen where
   
   paren a = "(" ++ a ++ ")"
   
-  hasRank2Type opts g nt = rank2Types opts && case symboltype opts g nt of
+  hasRank2Type opts x nt = rank2Types opts && case symboltype opts x nt of
     Just t -> isInfixOf (forallMatch opts) t
     Nothing -> False
       
-  symboltype opts g symbol
+  symboltype opts x symbol
     | symbol == errorTok = Just (process $ errorTokenType opts)
-    | symbol == (eof_term g) = Nothing
-    | elem symbol (non_terminals g) = fmap process $ join (maybelookup (types g) symbol)
+    | symbol == (eof_term (g x)) = Nothing
+    | elem symbol (non_terminals (g x)) = fmap process $ join (maybelookup (types (g x)) symbol)
     | wantsProjection = Nothing -- we don't know the type of the projection
-    | otherwise = Just (process $ token_type g)
+    | otherwise = Just (process $ token_type (common x))
     where
     process = remNewlines . paren where
       remNewlines = map replace
@@ -567,4 +569,4 @@ module Happy.Backend.RAD.CodeGen where
       replace x = x
     maybelookup arr i = if elem i (indices arr) then Just (arr ! i) else Nothing
     wantsProjection = "$$" == (rawToken \\ replaceDollar rawToken "") -- i.e. Tokens of form "TokenInt $$"
-    rawToken = fromJust $ lookup symbol (token_specs g)
+    rawToken = fromJust $ lookup symbol (token_specs (g x))

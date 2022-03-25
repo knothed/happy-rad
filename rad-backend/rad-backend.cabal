@@ -14,7 +14,7 @@ library
                        Happy.Backend.RAD.CLI
   build-depends:       base < 5,
                        array,
-                       happy-cli == 1.21.0,
+                       happy-codegen-common == 1.21.0,
                        happy-grammar == 1.21.0,
                        happy-tabular == 1.21.0,
                        dom-lt >= 0.2.2,

@@ -1,5 +1,5 @@
 module Happy.Backend.RAD.Follow where
-  import Happy.Grammar.Grammar
+  import Happy.Grammar
   import Happy.Backend.RAD.Tools
   import Happy.Tabular
   import Control.Monad

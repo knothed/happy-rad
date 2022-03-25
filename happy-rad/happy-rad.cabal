@@ -13,13 +13,13 @@ data-dir:   tests
 data-files: EpsilonAnnounce.y
 
 executable happy-rad
-  main-is:             Main.hs
+  main-is:             Main.lhs
   build-depends:       base >=4.8.2.0,
-                       happy-cli == 1.21.0,
+                       happy-codegen-common == 1.21.0,
                        happy-grammar == 1.21.0,
                        happy-frontend == 1.21.0,
                        happy-tabular == 1.21.0,
-                       happy-backend == 1.21.0,
+                       happy-backend-lalr == 1.21.0,
                        happy-backend-glr == 1.21.0,
                        rad-backend == 1.21.0,
                        transformers >= 0.5.6.2,
@@ -27,6 +27,7 @@ executable happy-rad
   hs-source-dirs:      src
   default-language:    Haskell98
   default-extensions:  CPP, MagicHash, FlexibleContexts
+  extensions: DoAndIfThenElse
   other-modules:
       Paths_happy_rad
 
