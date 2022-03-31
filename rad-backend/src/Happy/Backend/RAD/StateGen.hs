@@ -100,7 +100,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
 
 
   -- Create the extended grammar containing information about the recognition points.
-  createXGrammar :: Grammar -> Maybe String -> Maybe String -> CommonOptions -> [LALRState] -> IO XGrammar
+  createXGrammar :: Grammar -> Maybe String -> Maybe String -> CommonOptions -> [LALRState] -> XGrammar
   createXGrammar g hd tl opts lalrStates = do
     -- Create state graphs; determine recognition points for each rule
     let allGraphs = map (recognitionGraph g) lalrStates
@@ -119,10 +119,10 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     putStrLn $ "Sum of rec-points: " ++ show (sum recognitionPoints) ++ "; total rule lengths: " ++ show totalLength ++ "\nLL-ness: " ++ show (100 * (1 - (fromIntegral (sum recognitionPoints)) / (fromIntegral totalLength))) ++ "%"
 #endif
     
-    return x
+    x
     
   -- Generate all RAD states from happy's LALR states.
-  generateRADStates :: XGrammar -> [LALRState] -> [Int] -> IO [RADState]
+  generateRADStates :: XGrammar -> [LALRState] -> [Int] -> [RADState]
   generateRADStates x lalrStates unusedRules = do
     let g = RADTools.g x
     let first = mkFirst g
@@ -134,7 +134,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     debugPrint "RADStates:" (showRadState x) radStates
 #endif
     
-    return radStates
+    radStates
     
   -- Helper function for printing.
   debugPrint :: String -> (a -> String) -> [a] -> IO ()

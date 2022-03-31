@@ -1,0 +1,33 @@
+cabal-version:       >= 1.10
+
+name:                direct-exec
+version:             1.21.0
+synopsis:            Testing stuff
+
+author:              David Knothe
+maintainer:          dknothe314@me.com
+
+build-type:          Simple
+
+executable direct-exec
+  main-is:             Main.hs
+  build-depends:       base >=4.8.2.0,
+                       happy-codegen-common == 1.21.0,
+                       happy-grammar == 1.21.0,
+                       happy-frontend == 1.21.0,
+                       happy-tabular == 1.21.0,
+                       happy-backend-lalr == 1.21.0,
+                       happy-backend-glr == 1.21.0,
+                       rad-backend == 1.21.0,
+                       transformers >= 0.5.6.2,
+                       mtl >= 2.2.2,
+                       template-haskell,
+                       th-lift
+  hs-source-dirs:      src
+  default-language:    Haskell98
+  default-extensions:  CPP, MagicHash, FlexibleContexts
+  extensions: DoAndIfThenElse
+  other-modules:
+      Parse
+      TheAbssyn
+      THParsing

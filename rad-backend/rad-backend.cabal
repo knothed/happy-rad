@@ -14,17 +14,20 @@ library
                        Happy.Backend.RAD.CLI
   build-depends:       base < 5,
                        array,
+                       pretty,
                        happy-codegen-common == 1.21.0,
                        happy-grammar == 1.21.0,
                        happy-tabular == 1.21.0,
                        dom-lt >= 0.2.2,
                        containers >= 0.4.2,
-                       text
+                       text,
+                       template-haskell,
+                       haskell-src-meta
   hs-source-dirs:      src
   default-language:    Haskell98
-  default-extensions:  CPP, MagicHash, FlexibleContexts
+  default-extensions:  CPP, MagicHash, FlexibleContexts, GeneralizedNewtypeDeriving, TemplateHaskell, TemplateHaskellQuotes
   other-modules:       Happy.Backend.RAD.Follow,
                        Happy.Backend.RAD.Tools,
-                       Happy.Backend.RAD.CodeGen,
+                       Happy.Backend.RAD.CodeGenNew,
                        Happy.Backend.RAD.StateGen,
                        Paths_rad_backend

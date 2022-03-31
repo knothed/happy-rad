@@ -1,4 +1,5 @@
 packages:
+ direct-exec
  happy-rad
  rad-backend
  packages/backend-lalr

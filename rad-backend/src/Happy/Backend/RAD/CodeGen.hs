@@ -11,6 +11,7 @@ module Happy.Backend.RAD.CodeGen where
   import Data.Maybe
   import Data.Text (pack, unpack, replace)
   import GHC.Arr ((!), indices)
+  import Happy.Backend.RAD.SyntaxLib
 
   data ParserType = Normal | Monad | MonadLexer deriving (Eq, Show)
   
@@ -45,7 +46,9 @@ module Happy.Backend.RAD.CodeGen where
   -- Generate the full code
   genCode :: GenOptions -> XGrammar -> [RADState] -> ActionTable -> GotoTable -> [Int] -> IO String
   genCode opts x states action goto unused_rules = do
-    return $ newlines 3 [nowarn, languageFeatures, header', entryPoints', definitions', rules', parseNTs', parseTerminals', states', actions', footer'] where
+    let test = varBind "var1" $ varE "array"
+    return $ renderDocDecs [[test]] "" where
+    --return $ newlines 3 [nowarn, languageFeatures, header', entryPoints', definitions', rules', parseNTs', parseTerminals', states', actions', footer'] where
       nowarn = "{-# OPTIONS_GHC -w #-}"
       
       languageFeatures

@@ -201,7 +201,8 @@ Branch off to RAD parser production
 >         then do
 >           let rad_flags = [a | OptRAD_ a <- cli]
 >           let flags = RADCLI.parseFlags rad_flags name
->           runRADBackend flags g hd tl common_options action goto (lr1items tables) unused_rules
+>           runRADBackend flags g hd tl common_options action goto (lr1items tables) unused_rules genCode >>=
+>             if (outFile flags) == "-" then putStr else writeFile (outFile flags)
 
 >       else if OptGLR `elem` cli
 
