@@ -1,9 +1,1 @@
-packages:
- happy-rad
- rad-backend
- packages/backend-lalr
- packages/backend-glr
- packages/codegen-common
- packages/frontend
- packages/grammar
- packages/tabular
+packages: .

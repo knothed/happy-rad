@@ -1,0 +1,55 @@
+cabal-version:       >= 1.10
+
+name:                happy-rad
+version:             2.0
+synopsis:            Happy plus an optional recursive ascent-descent backend.
+
+author:              David Knothe
+maintainer:          dknothe314@me.com
+
+build-type:          Simple
+
+library
+  exposed-modules:     Happy.Backend.RAD,
+                       Happy.Backend.RAD.CLI
+  build-depends:       base >= 4.9 && < 5,
+                       array >= 0.2,
+                       happy-lib >= 2.0,
+                       dom-lt >= 0.2.2,
+                       containers >= 0.4.2,
+                       text
+  hs-source-dirs:      src
+  default-language:    Haskell98
+  default-extensions:  CPP, MagicHash, FlexibleContexts
+  other-modules:       Happy.Backend.RAD.Follow,
+                       Happy.Backend.RAD.Tools,
+                       Happy.Backend.RAD.CodeGen,
+                       Happy.Backend.RAD.StateGen,
+                       Paths_happy_rad
+
+executable happy-rad
+  main-is:             Main.lhs
+  build-depends:       base >=4.8.2.0,
+                       happy-lib >= 2.0,
+                       happy-rad,
+                       transformers >= 0.5.6.2,
+                       mtl >= 2.2.2
+  hs-source-dirs:      app
+  default-language:    Haskell98
+  default-extensions:  CPP, MagicHash, FlexibleContexts, DoAndIfThenElse
+  other-modules:
+      Paths_happy_rad
+
+-- The testsuite seems broken because we cannot simply re-use happy's.
+-- Perhaps we can simply clone it into a submodule at some point.
+--test-suite test
+--  type: exitcode-stdio-1.0
+--  main-is: tests.hs
+--  -- This line is important as it ensures that the local `exe:happy-rad` component declared above is built before the test-suite component is invoked, as well as making sure that `happy` is made available on $PATH and `$happy_datadir` is set accordingly before invoking `tests.hs`
+--  build-tools: happy-rad
+--
+--  ghc-options: -threaded
+--  build-depends: base, happy-test, happy-frontend
+--  default-language: Haskell98
+--  other-modules:
+--        Paths_happy_rad

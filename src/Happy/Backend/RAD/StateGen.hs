@@ -1,5 +1,4 @@
 module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, createXGrammar, artCore, hdiv, plus, RADType(..), RADState(..), LALRState(..), RawRADState(..), LALRDefaultAction(..), RADDefaultAction(..)) where
-  import Happy.CodeGen.Common.Options
   import Happy.Grammar
   import Happy.Tabular
   import Happy.Tabular.LALR
@@ -26,14 +25,14 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   type FailAction = (Name)                      -- On terminal t --> fail
   type GotoAction = (Name, (Int, [Lr0Item]))    -- Nonterminal X <-> goto to state S with items I (= A -> B X . C) such that:
                                                 -- g_X v = state_{i+X} (k_i v)
-  
+
   -------------------- RAD STATE --------------------
-  
+
   data RADType = Type1 -- States with the item _ -> |- . NT (here a top-down parse is started)
                | Type2 -- States with the item _ -> |- NT . (here a top-down parse is accepted)
                | Type3 -- Normal states with no artificial item
                deriving (Show, Eq)
-  
+
   data RawRADState = RawRADState {
     i :: Int, -- The final index that the completed RADState state will also have
     comingFrom :: Int,
@@ -47,13 +46,13 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     , Show
 #endif
     )
-  
+
   createType1State :: XGrammar -> Name -> LALRState -> Int -> Int -> RawRADState
   createType1State x nt state i comingFrom = RawRADState { i = i, radType = Type1, state = state, nt = nt, core' = [], completion' = radCompletion x (itemsStartingWith (g x) nt), comingFrom = comingFrom } -- has artifical core item _ -> |- . NT
-  
+
   createType2State :: XGrammar -> Name -> LALRState -> [Lr0Item] -> Int -> Int -> RawRADState
   createType2State x nt state core i comingFrom = RawRADState { i = i, radType = Type2, state = state, nt = nt, core' = core, completion' = radCompletion x core, comingFrom = comingFrom } -- has artifical core item _ -> |- NT .
-  
+
   createType3State :: XGrammar -> LALRState -> [Lr0Item] -> Int -> Int -> RawRADState
   createType3State x state core i comingFrom = RawRADState { i = i, radType = Type3, state = state, nt = undefined, core' = core, completion' = radCompletion x core, comingFrom = comingFrom }
 
@@ -70,13 +69,13 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     , Show
 #endif
     )
-  
+
   data RADDefaultAction = ErrorShift' Int -- On errorToken (i.e. default), shift to state X
                         | Announce' Int -- Announce rule X
                         | Accept' -- Accept the NT. Only in type2-states
                         | Error' -- Call happyError
                         deriving (Eq, Show)
-  
+
   -- The core PLUS the possible artificial item.
   -- Artificial items have negative rule numbers - they look like this: "Lr0 (-4) 0" for the item "|- -> . (NT4)".
   artCore :: RADState -> [Lr0Item]
@@ -90,7 +89,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
 
   showRadState :: XGrammar -> RADState -> [Char]
   showRadState x state = "Raw = " ++ showRaw x (_raw state) ++ "\nShifts = " ++ show (shifts' state) ++ "\nGotos = " ++ show (gotos' state) ++ "\nAnnounces = " ++ show (announces' state) ++ "\nAccepts = " ++ show (accepts' state) ++ "\nFails = " ++ show (fails' state) ++ "\nDefault = " ++ show (defaultAction' state) ++ "\n\n"
-  
+
   showRaw :: XGrammar -> RawRADState -> [Char]
   showRaw x raw = "RawRADState " ++ show (i raw) ++ ": " ++ show (radType raw) ++ " (orig state: " ++ show (index (state raw)) ++ " " ++ "(" ++ intercalate "; " (map (showItem (g x)) (coreItems (state raw))) ++ "))" ++
     (if radType raw /= Type3 then ". NT = " ++ show (nt raw) ++ " (" ++ ((token_names (g x)) ! (nt raw)) ++ ")" else "") ++
@@ -100,15 +99,15 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
 
 
   -- Create the extended grammar containing information about the recognition points.
-  createXGrammar :: Grammar -> Maybe String -> Maybe String -> CommonOptions -> [LALRState] -> IO XGrammar
+  createXGrammar :: Grammar -> Maybe String -> Maybe String -> Pragmas -> [LALRState] -> IO XGrammar
   createXGrammar g hd tl opts lalrStates = do
     -- Create state graphs; determine recognition points for each rule
     let allGraphs = map (recognitionGraph g) lalrStates
     let nonfree = nonfreeItems g allGraphs
     let recognitionPoints = determineRecognitionPoints g nonfree
-    
+
     let x = XGrammar { g = g, hd = hd, tl = tl, common = opts, recognitionPoints = recognitionPoints }
-    
+
 #ifdef DEBUG
     debugPrint "State Graphs:" (showGraph g) allGraphs
     --debugPrint "Non-Free Items:" (showItem g) nonfree
@@ -118,9 +117,9 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     let totalLength = sum $ map (\(Production _ rhs _ _) -> length rhs) (productions g)
     putStrLn $ "Sum of rec-points: " ++ show (sum recognitionPoints) ++ "; total rule lengths: " ++ show totalLength ++ "\nLL-ness: " ++ show (100 * (1 - (fromIntegral (sum recognitionPoints)) / (fromIntegral totalLength))) ++ "%"
 #endif
-    
+
     return x
-    
+
   -- Generate all RAD states from happy's LALR states.
   generateRADStates :: XGrammar -> [LALRState] -> [Int] -> IO [RADState]
   generateRADStates x lalrStates unusedRules = do
@@ -128,14 +127,14 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     let first = mkFirst g
     let follow = followArray g first
     let radStates = lalrToRADStates x lalrStates unusedRules first follow
-    
+
 #ifdef DEBUG
     debugPrint "LALRStates:" (showState g) lalrStates
     debugPrint "RADStates:" (showRadState x) radStates
 #endif
-    
+
     return radStates
-    
+
   -- Helper function for printing.
   debugPrint :: String -> (a -> String) -> [a] -> IO ()
   debugPrint title showElem elems = putStrLn $ break ++ dash ++ "\n" ++ title ++ break ++ unlines (map showElem elems) ++ dash ++ break where
@@ -146,7 +145,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   lalrToRADStates :: XGrammar -> [LALRState] -> [Int] -> ([Name] -> NameSet) -> Array Name NameSet -> [RADState]
   lalrToRADStates x@(XGrammar { g = g, recognitionPoints = recognitionPoints }) lalrStates unusedRules first follow = gen' x [] rawType1States where
     rawType1States = map (uncurry toType1) (zip unambiguousNTs [0..])
-    
+
     -- Unambiguous NTs are NTs that appear after the recognition point in some rule
     unambiguousNTs = filter hasGoodRule (non_terminals g)
     hasGoodRule = not . null . findGoodRule
@@ -159,14 +158,14 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       posBeforeNT = (length rhs - 1) - (fromJust $ findIndex (nt ==) (reverse rhs))
       item = Lr0 i posBeforeNT
       state = fromJust $ find (elem item . completionItems) lalrStates
-  
+
     -- Complete the raw states to full RADStates, possibly yielding new raw states which will be recursively completed.
     gen' :: XGrammar -> [RADState] -> [RawRADState] -> [RADState]
     gen' _ states [] = states
     gen' x states rs@(raw:raws) = gen' x (states ++ [fresh]) (raws ++ new) where
       (fresh, new) = completeRaw x lalrStates raw existingRaws first follow (length states + length rs)
       existingRaws = raws ++ map _raw states
-  
+
 
   -- Complete a raw state to a RADState, possibly yielding new raw states.
   -- The "new" raw states which are created for shifting/goto can also be existing ones; therefore, the list of all already created raw states is passed around.
@@ -176,19 +175,19 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     newStates = gotoStates ++ shiftStates ++ (maybe [] return newStateFromTransformedErrorShift)
     gotos' = transformedGotos
     shifts' = shiftShifts
-    
+
     announces' = announcesFromReduces ++ shiftAnnounces ++ type1EpsilonAnnounces
     announces'' = case default'' of -- If default action is announce, remove unnecessary entries
       Announce' rule -> filter ((/=) rule . snd) $ filter ((/=) errorTok . fst) announces'
       _ -> filter ((/=) errorTok . fst) announces'
-      
+
     accepts' = shiftAccepts ++ type2Accepts
     accepts'' -- If default action is accept, no need for an accept array
       | default'' == Accept' = []
       | otherwise = delete errorTok (rmdups accepts') where rmdups = map head . group . sort
 
     fails' = fails (state raw)
-      
+
     -- If there is no transformed default action, we choose a suitable default action:
     -- Accept for type2 states, or the largest announce action for other states.
     -- If there is an accept or announce action on the errorToken, use this as the default action.
@@ -199,31 +198,31 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
         Announce' rule -> if rule == defaultRule then Announce' defaultRule else
              error $ "errorTok wants to announce rule " ++ show defaultRule ++ ", but defaultAction is " ++ (show default')
         _ -> error $ "errorTok wants to announce rule " ++ show defaultRule ++ ", but defaultAction is " ++ (show default')
-      | default' /= Error' = default' -- Keep transformed default action 
+      | default' /= Error' = default' -- Keep transformed default action
       | radType raw == Type2 = Accept' -- Type2 states accept per default
       | not (null announces') = Announce' largestAnnounce
       | otherwise = Error'
       where
         defaultRule = snd $ fromJust $ find ((==) errorTok . fst) announces'
         largestAnnounce = head . head $ sortBy (flip (comparing length)) (group (sort (map snd announces')))
-        
+
     -- Transform the LALR default action
     default' = fromMaybe Error' (transformDefault (defaultAction (state raw)))
     transformDefault Error = Just Error'
     transformDefault (Reduce rule) = do
       (_, rule') <- transformReduce (errorTok, rule)
       return $ Announce' rule'
-    
+
     transformDefault (ErrorShift _) = case (fromJust transformedErrorShift) of
         (Just (_, (state, _)), _, _, _) -> Just (ErrorShift' state)
         (_, _, Just (_, rule), _) -> Just (Announce' rule)
         _ -> Nothing -- The default action could be irrelevant for the RAD state
-    
+
     transformedErrorShift = case (defaultAction (state raw)) of
       ErrorShift state -> Just $ transformShift stateNum (errorTok, (state, undefined)) where stateNum = stateCount + length (gotoStates ++ shiftStates)
       _ -> Nothing
     newStateFromTransformedErrorShift = maybe Nothing (\(_, s, _, _) -> s) transformedErrorShift
-    
+
     -- Goto actions and new goto-states:
     (transformedGotos, gotoStates) = (catMaybes transformedGotos', catMaybes gotoStates')
     (transformedGotos', gotoStates') = unzip $ allGotos' stateCount (gotos (state raw)) [] where
@@ -232,7 +231,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       allGotos' nextIndex (goto:gotos) result = case transformGoto nextIndex goto of
         res@(_, Just _) -> allGotos' (nextIndex + 1) gotos (result ++ [res])
         res@(_, Nothing) -> allGotos' nextIndex gotos (result ++ [res])
-    
+
     -- Transform a normal goto-action into a RAD-goto action to a new type3-state.
     -- This function creates both the goto action and the new state.
     -- Return Nothing if the goto is not required for RAD.
@@ -244,17 +243,17 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       where
         isGotoFromType1ToType2 = radType raw == Type1 && tok == (nt raw) -- type1-specific. May have no goto items as an articifial item is created
         gotoItems = plusRad (completion' raw) tok x
-          
+
         newState
           | isGotoFromType1ToType2 = Just $ createType2State x tok (allStates !! gotoState) gotoItems index (i raw)
           | null existingState = Just $ createType3State x (allStates !! gotoState) gotoItems index (i raw)
           | otherwise = Nothing
-          
+
         newAction = (tok, (index, allItems)) where
           allItems = if isGotoFromType1ToType2 then artificial:gotoItems else gotoItems -- gotoItems + artificial item
           artificial = Lr0 (-(nt raw)) 1
           index = maybe (i $ fromJust newState) i existingState
-        
+
         -- an existing (type3) state with the same core can be reused, if existing
         existingState
           | isGotoFromType1ToType2 = Nothing
@@ -271,7 +270,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       allShifts' nextIndex (shift:shifts) result = case transformShift nextIndex shift of
         res@(_, Just _, _, _) -> allShifts' (nextIndex + 1) shifts (result ++ [res])
         res@(_, Nothing, _, _) -> allShifts' nextIndex shifts (result ++ [res])
-      
+
     -- Transform a normal shift-action into one of the following:
     -- A shift action (with a new state), an announce action or an accept action, or nothing if the shift is not relevant for the RAD state.
     transformShift :: Int -> ShiftAction -> (Maybe ShiftAction, Maybe RawRADState, Maybe AnnounceAction, Maybe AcceptAction)
@@ -284,15 +283,15 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
         gotoItems = plusRad (completion' raw) tok x
         shift = (tok, (index, gotoItems)) where
           index = maybe (i $ fromJust newState) i existingState
-        
+
         -- an existing (type3) state with the same core can be reused, if existing
         existingState = find matchesState allRawStates where
           matchesState raw' = gotoItems == core' raw' && radType raw' == Type3
-          
+
         newState = case existingState of
           Just _ -> Nothing
           Nothing -> Just $ createType3State x (allStates !! shiftState) gotoItems index (i raw)
-          
+
         announcedRule = getAnnouncedRule tok
         Just rule' = announcedRule
 
@@ -309,7 +308,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
         veryRight = rhsLength' (lookupProdNo g rule)
         announcedRule = getAnnouncedRule (lhs g (Lr0 rule 0))
         Just rule' = announcedRule
-        
+
     -- Accept actions for type-2 states:
     -- When a token of the lc-follow-set of NT (on which we accept NT) already has another action, we get an accept conflict.
     type2Accepts
@@ -318,11 +317,11 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       where
         toAccept tok
           | tok == 0 = Nothing -- epsilon ∈ follow(NT)
-          | hasOtherAction tok = Nothing -- No accept conflict! This happens e.g. on shift/reduce-conflicts which have been resolved in favor of shift 
+          | hasOtherAction tok = Nothing -- No accept conflict! This happens e.g. on shift/reduce-conflicts which have been resolved in favor of shift
           | otherwise = Just tok
         hasOtherAction tok = elem tok otherActions
         otherActions = (map fst shifts') ++ (map fst announces') ++ fails'
-        
+
     -- For a type-1 action: If NT can produce ɛ (either directly, NT -> ɛ or indirectly, NT -> A so that A ->* ɛ) we need a special announce action to announce a related rule.
     type1EpsilonAnnounces
       | (radType raw) == Type1 && canProduceEpsilon [nt raw] = map toAnnounce validTokens
@@ -339,45 +338,45 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
             where
             announces = map fst (announcesFromReduces ++ shiftAnnounces)
             otherActions = (map fst shifts') ++ (map id accepts')
-            
+
         toAnnounce tok = (tok, announcedRule)
-        
+
         -- The question whether the right hand side of a rule can produce epsilon.
         canProduceEpsilon = Data.IntSet.member epsilonTok . first
-        
+
         -- Create the graph consisting of all items in the NT's completion which CAN PRODUCE EPSILON.
         -- From these, there should be a way from the NT to a leaf node (X -> .)
         core = [Lr0 (-(nt raw)) 0]
-        
+
         reducedCompletion = filter itemCanProduceEpsilon (completeWithFunction (directCompletion g) core) where
           itemCanProduceEpsilon = canProduceEpsilon . rhsAfterDot g
-          
+
         (_, _rooted, nodes) = recognitionGraph g artState where
           artState = LALRState { index = 0, coreItems = core, completionItems = reducedCompletion, shifts = [], gotos = [], reduces = [], fails = [], defaultAction = Error }
         graph = convert _rooted
-        
+
         -- All vertices reachable from the root node
-        connectedVertices = delete 0 (reachable graph 0) 
-        
+        connectedVertices = delete 0 (reachable graph 0)
+
         -- Find all reachable leaf vertices of the form X -> .
         -- Optimally, there should only be a single one of these.
         epsilonItems = filter (isEpsilon . (!!) nodes) connectedVertices where
           isEpsilon (Item (Lr0 rule _) _) = rule >= 0 && let (Production _ rhs _ _) = (lookupProdNo g rule) in null rhs
           isEpsilon _ = False
-        
+
         leafNode = case epsilonItems of
           [] -> error $ "Cannot happen - there must be an item of the form X -> . in the completion of NT " ++ show ((token_names g) ! (nt raw))
           [item] -> item
           _ -> error $ "Multiple leaf nodes X -> . in the completion of NT " ++ show ((token_names g) ! (nt raw))
-        
+
         -- All cycle-free paths between 1 (the node _ -> |- . NT) and the leaf node.
         allPaths = connect 1 leafNode graph
-        
+
         connect x y g = helper x y g [x] where -- all cycle-free paths between x and y, from https://stackoverflow.com/questions/11168238
           helper a b g visited
             | a == b    = [[]]
             | otherwise = [(a,c):path | c <- g!a, c `notElem` visited, path <- helper c b g (c:visited)]
-        
+
         -- Get the single path from the root node 1 to the leaf node
         path = case allPaths of
           [] -> error $ "Should not happen - there must be a path from the root node to the epsilon node"
@@ -385,7 +384,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
           _ -> error $ "Multiple paths from the root node (" ++ showNode (nodes !! 1) ++ ") to epsilon node (" ++ showNode (nodes !! leafNode) ++ ")" where
         showNode (Item item _) = showItem g item
         showNode _ = ""
-            
+
         -- Find the item / rule to be announced.
         -- It is any rule on the path which both:
         --  - has the recognition point at the beginning and
@@ -394,11 +393,11 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
         validElements = filter (valid . (!!) nodes) elements where
           valid (Item item@(Lr0 rule _) _) = (recognitionPoints x) !! rule == 0 && elem item (completion' raw)
           valid _ = False
-          
+
         announcedItem = case validElements of
-          [] -> error $ "No valid rule to be announced for epsilon-production " ++ showNode (nodes !! leafNode) ++ "in item " ++ showNode (nodes !! 1) 
+          [] -> error $ "No valid rule to be announced for epsilon-production " ++ showNode (nodes !! leafNode) ++ "in item " ++ showNode (nodes !! 1)
           items -> head items
-          
+
         announcedRule = let (Item (Lr0 rule _) _) = nodes !! announcedItem in rule
 
     -- This is the traceback of a shift or reduce action to the item and rule through whose recursive completion it was added to the RAD state's completion.
@@ -413,7 +412,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
         Nothing -> extendedRule
         where
         eq (Production a b c _) (Production d e f _) = a == d && b == e && c == f
-        
+
         directRule = find matchingReadyRule (completion' raw)
         matchingReadyRule item@(Lr0 rule dot) = (recognitionPoints x) !! rule == dot && hasTokenAfterDot g item && tokenAfterDot g item == token
         extendedRule = case length extendedRules of
@@ -425,10 +424,10 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
         recursive item@(Lr0 _ dot')
           | dot' == 0 && hasTokenAfterDot g item && tokenAfterDot g item == token = recursiveAnnouncedRule (lhs g item) (token:nulls) -- avoids infinite recursion
           | otherwise = Nothing
-        
+
         mapMaybeSet :: Ord b => (a -> Maybe b) -> Data.Set.Set a -> Data.Set.Set b
         mapMaybeSet f = Data.Set.fromList . Data.Maybe.mapMaybe f . Data.Set.toList
-    
+
 
  -------------------- LALR STATE GENERATION --------------------
 
@@ -439,7 +438,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     let numbered = zip [0..] completed
     let lalrStates = map (uncurry $ createState g action goto) numbered
     lalrStates
-  
+
   -- `State` bundles required symbol-item mappings for creating a Hinze-like continuation-based
   -- state function for a state.
   -- It combines the data from goto and action tables in one coherent data structure.
@@ -457,12 +456,12 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     , Show
 #endif
     )
-  
+
   data LALRDefaultAction = ErrorShift Int -- On errorToken (i.e. default), shift to state X
                          | Reduce Int -- Reduce rule X
                          | Error -- Call happyError
                          deriving (Eq, Show)
-  
+
   showState :: Grammar -> LALRState -> [Char]
   showState g state = "State " ++ show (index state) ++
     " { " ++ unwords (map (showItem g) (coreItems state)) ++ " }" ++
@@ -475,7 +474,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       showGoto (nt, (i, items)) = "(on " ++ (token_names g)!nt ++ " goto " ++ show i ++ " with items: " ++ unwords (map (showItem g) items) ++ ")"
       showReduce (token, rule) = "(on " ++ (token_names g)!token ++ " reduce rule " ++ show rule ++ ")"
       showFail token = "(on " ++ (token_names g)!token ++ " fail)"
-  
+
   -- Create `State` data from the given `CompletedLr0State` and its index.
   createState :: Grammar -> ActionTable -> GotoTable -> Int -> CompletedLr0State -> LALRState
   createState g action goto i state = LALRState { index = i, coreItems = core state, completionItems = completion state, shifts = shifts, gotos = gotos, reduces = reduces, fails = fails, defaultAction = defaultAction } where
@@ -490,39 +489,39 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     fails = catMaybes $ map toFail actionEntries
     toFail (token, LR'MustFail) = Just token
     toFail _ = Nothing
-    
+
     shifts' = catMaybes $ map toShift actionEntries
     toShift (token, LR'Shift toState _) = Just (token, (toState, shiftItems token))
     toShift (token, LR'Multiple _ (LR'Shift toState _)) = Just (token, (toState, shiftItems token))
     toShift _ = Nothing
     shiftItems token = plus (completion state) token g
-    
+
     reduces' = catMaybes $ map toReduce actionEntries
     toReduce (token, LR'Reduce rule _) = Just (token, rule)
     toReduce (token, LR'Multiple _ (LR'Reduce rule _)) = Just (token, rule)
     toReduce (token, LR'Accept) = let (Lr0 rule _) = head (core state) in Just (token, rule)
     toReduce (token, LR'Multiple _ LR'Accept) = let (Lr0 rule _) = head (core state) in Just (token, rule)
     toReduce _ = Nothing
-    
+
     -- Remove default action (errorShift or reduce) from shifts/reduces
     shifts = filter (\(token, _) -> token /= errorTok) shifts'
     reduces = filter test reduces' where
       test = if defaultReduce then (\(_, rule) -> rule /= defaultReduceRule) else return True
-    
+
     defaultErrorShift = any isErrorAction shifts' where
     errorShiftState = (fst . snd . fromJust) (find isErrorAction shifts')
-    
+
     isErrorAction (token, _) = token == errorTok
-      
+
     defaultReduce = not defaultErrorShift && not (null reduces')
     defaultReduceRule = fromMaybe largestRule errorRule where
       errorRule = (find isErrorAction reduces') >>= Just . snd
-      
+
       largestRule = (snd . head . head) sortedGroups -- Find reduce rule which is used most often (i.e. by most tokens)
       sorted = sortBy (comparing snd) reduces'
       grouped = groupBy ((==) `on` snd) sorted
       sortedGroups = sortBy (flip (comparing length)) grouped
-    
+
     defaultAction
       | defaultErrorShift = ErrorShift errorShiftState
       | defaultReduce = Reduce defaultReduceRule
@@ -531,18 +530,18 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
 
 
   -------------------- DETERMINING RECOGNITION POINTS --------------------
-  
+
   -- Determine the recognition points for each rule from the set of all non-free items.
   determineRecognitionPoints :: Grammar -> [Lr0Item] -> [Int]
   determineRecognitionPoints g nonfree = map (uncurry recognitionPoint) (zip [0..] (productions g)) where
-    
+
     -- No priority -> recognition point = first position where all consecutive positions are free
-    recognitionPoint rule (Production _ rhs _ No) = maybe 0 (+1) $ find isNonfree (reverse [0 .. length rhs-1]) where 
+    recognitionPoint rule (Production _ rhs _ No) = maybe 0 (+1) $ find isNonfree (reverse [0 .. length rhs-1]) where
       isNonfree i = elem (Lr0 rule i) nonfree || (rhs !! i) == errorTok -- recognition point must come after all error tokens
-      
+
     -- Priority/associativity -> recognition point must be at the very right
     recognitionPoint _ (Production _ rhs _ _) = length rhs
-  
+
   -- Determine all non-free items from all state graphs.
   nonfreeItems :: Grammar -> [RecognitionGraph] -> [Lr0Item]
   nonfreeItems _ graphs = (toList . fromList . join) nonfrees where -- removing duplicates
@@ -553,7 +552,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
         reachableLeafs = filter (isLeaf . (!!) nodes) (reach g v)
         isLeaf (ShiftNode _ _) = True; isLeaf (ReduceNode _ _) = True; isLeaf _ = False
       lr0 = lr0' . (!!) nodes where lr0' (Item a _) = a
-      
+
   -- The number of nodes of a rooted graph.
   numNodes :: Rooted -> Int
   numNodes = length . toAdj . snd
@@ -561,7 +560,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   -- Convert a Rooted (used for domination) to a Data.Graph.Graph (used for reachability)
   convert :: Rooted -> Data.Graph.Graph
   convert g = listArray (0, numNodes g-1) (map snd (toAdj (snd g)))
-  
+
   -- All nodes that can be reached from this node using at least 1 edge.
   -- This means a node only reaches itself it participates in a cycle.
   reach :: Rooted -> Vertex -> [Vertex]
@@ -570,16 +569,16 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       reachWithoutV = delete v (reachable g v)
       isCycle = elem v (g ! v) || any reachesV reachWithoutV
       reachesV w = elem v (reachable g w)
-    
+
   -- True if a dominates b. A node never dominates itself.
   dominates :: [(Node, Path)] -> Node -> Node -> Bool
   dominates dom' a b = contains a pair where
     pair = find ((b ==) . fst) dom'
     contains a = maybe False (elem a . snd)
-  
+
 
   -------------------- RECOGNITION GRAPH CREATION --------------------
-    
+
   data RecognitionNode = Init
                         | Item Lr0Item Bool -- item, isCore
                         | ShiftNode Int Name -- shift to state; token which triggers the shift
@@ -592,11 +591,11 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
   type RecognitionGraph = (Int,               -- Rule number.
                            Rooted,            -- Rooted uses Ints to decode the nodes,
                            [RecognitionNode]) -- so this is the ordered list of all nodes
-                        
+
   -- Create the rooted state graph for a state which is in turn used to determine the recognition points.
   recognitionGraph :: Grammar -> LALRState -> RecognitionGraph
   recognitionGraph g state@(LALRState { index = i, coreItems = core, completionItems = completion, shifts = shifts, reduces = reduces, defaultAction = defaultAction }) = graph i allNodes succ where
-    
+
     -- All nodes of the graph
     allNodes = [initNode] ++ coreNodes ++ completionNodes ++ shiftNodes ++ reduceNodes ++ defaultNode where
       initNode = Init
@@ -604,15 +603,15 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
       completionNodes = map (flip Item False) (filter (not . (flip elem) core) completion)
       shiftNodes = map (uncurry toShift) shifts where
         toShift tok (state, _) = ShiftNode state tok
-        
+
       reduceNodes = map (uncurry toReduce) reduces where
         toReduce tok rule = ReduceNode rule (Just tok)
-        
+
       defaultNode = case defaultAction of
         ErrorShift state -> [ShiftNode state errorTok]
         Reduce rule -> [ReduceNode rule Nothing]
         _ -> []
-      
+
     -- Successor relation
     succ :: RecognitionNode -> RecognitionNode -> Bool
     succ Init (Item _ True) = True
@@ -620,7 +619,7 @@ module Happy.Backend.RAD.StateGen (generateLALRStates, generateRADStates, create
     succ (Item item@(Lr0 rule _) _) (ReduceNode rule' _) = rule == rule' && dotIsAtRightEnd g item
     succ (Item item@(Lr0 rule _) _) (ShiftNode _ token) = hasTokenAfterDot g item && (tokenAfterDot g item) == token
     succ _ _ = False
-    
+
     -- Create a graph from the nodes and their successor relation. Here, the nodes are encoded as integers.
     graph :: Int -> [RecognitionNode] -> (RecognitionNode -> RecognitionNode -> Bool) -> RecognitionGraph
     graph i nodes succ = (i, (fromJust $ elemIndex Init nodes, fromAdj adjacency), nodes) where
