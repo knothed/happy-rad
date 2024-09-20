@@ -1,12 +1,11 @@
 module Happy.Backend.RAD(RADBackendArgs(..), TypeAnnotations(..), runRADBackend) where
 
-import Happy.CodeGen.Common.Options
 import Happy.Grammar
 import Happy.Tabular
 import Happy.Tabular.LALR
 import Happy.Backend.RAD.CodeGen
 import Happy.Backend.RAD.StateGen
-import Paths_rad_backend
+import Paths_happy_rad
 import Data.Maybe
 
 -------- Main entry point (runRADBackend) --------
@@ -20,16 +19,16 @@ data RADBackendArgs = RADBackendArgs {
 
 data TypeAnnotations = Never | Always | RankN deriving Eq -- Rank2 implies Always
 
-runRADBackend :: RADBackendArgs -> Grammar -> Maybe String -> Maybe String -> CommonOptions -> ActionTable -> GotoTable -> [Lr1State] -> [Int] -> IO ()
+runRADBackend :: RADBackendArgs -> Grammar -> Maybe String -> Maybe String -> Pragmas -> ActionTable -> GotoTable -> [Lr1State] -> [Int] -> IO ()
 runRADBackend opts g hd tl common action goto items unused_rules =
     let (isMonad, _, parserType, _, _) = monad common
-    
+
         ptype = case (lexer common, isMonad) of
           (Nothing, False) -> Normal
           (Nothing, True) -> Monad
           (Just _, False) -> error "%lexer without %monad not supported in RAD"
           (Just _, True) -> MonadLexer
-         
+
         options = GenOptions {
           ptype = ptype,
           wrapperType = fromMaybe (if parserType == "Parser" then "HappyP" else "Parser") (parserWrapperType opts),
@@ -41,7 +40,7 @@ runRADBackend opts g hd tl common action goto items unused_rules =
           forallMatch = "forall ",
           optimize = True
         }
-    
+
         lalrStates = generateLALRStates g action goto items in do
 
         x <- createXGrammar g hd tl common lalrStates
