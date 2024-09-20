@@ -2,7 +2,7 @@ cabal-version:       >= 1.10
 
 name:                happy-rad
 version:             2.0
-synopsis:            Happy plus an optional recursive ascent-descent backend.
+synopsis:            Happy with a recursive ascent-descent backend.
 
 author:              David Knothe
 maintainer:          dknothe314@me.com

@@ -337,8 +337,8 @@ Extract various command-line options.
 
 > copyright :: String
 > copyright = unlines [
->  "Happy Version " ++ showVersion version ++ " Copyright (c) 1993-1996 Andy Gill, Simon Marlow (c) 1997-2005 Simon Marlow","",
->  "Happy is a Yacc for Haskell, and comes with ABSOLUTELY NO WARRANTY.",
+>  "Happy-Rad Version " ++ showVersion version ++ " Copyright (c) 1993-1996 Andy Gill, Simon Marlow (c) 1997-2005 Simon Marlow","",
+>  "Happy-Rad is a modification of Happy, which is a Yacc for Haskell, and comes with ABSOLUTELY NO WARRANTY.",
 >  "This program is free software; you can redistribute it and/or modify",
 >  "it under the terms given in the file 'LICENSE' distributed with",
 >  "the Happy sources."]
