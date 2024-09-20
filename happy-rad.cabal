@@ -40,16 +40,14 @@ executable happy-rad
   other-modules:
       Paths_happy_rad
 
--- The testsuite seems broken because we cannot simply re-use happy's.
--- Perhaps we can simply clone it into a submodule at some point.
---test-suite test
---  type: exitcode-stdio-1.0
---  main-is: tests.hs
---  -- This line is important as it ensures that the local `exe:happy-rad` component declared above is built before the test-suite component is invoked, as well as making sure that `happy` is made available on $PATH and `$happy_datadir` is set accordingly before invoking `tests.hs`
---  build-tools: happy-rad
---
---  ghc-options: -threaded
---  build-depends: base, happy-test, happy-frontend
---  default-language: Haskell98
---  other-modules:
---        Paths_happy_rad
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: test.hs
+  -- This line is important as it ensures that the local `exe:happy-rad` component declared above is built before the test-suite component is invoked, as well as making sure that `happy` is made available on $PATH and `$happy_datadir` is set accordingly before invoking `tests.hs`
+  build-tools: happy-rad
+
+  ghc-options: -threaded
+  build-depends: base, happy-lib, process < 1.7
+  default-language: Haskell98
+  other-modules:
+        Paths_happy_rad
